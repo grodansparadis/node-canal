@@ -1,0 +1,33 @@
+{
+  "name": "node-canal",
+  "version": "1.0.0",
+  "description": "CANAL module interface for node.js",
+  "main": "index.js",
+  "gypfile": true,
+  "scripts": {
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grodansparadis/node-canal.git"
+  },
+  "keywords": [
+    "canal",
+    "can",
+    "vscp",
+    "automation"
+  ],
+  "author": "Åke Hedman, Grodans Paradis AB <akhe@grodansparadis.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/grodansparadis/node-canal/issues"
+  },
+  "homepage": "https://github.com/grodansparadis/node-canal#readme",
+  "devDependencies": {
+    "node-gyp": "^6.1.0"
+  },
+  "dependencies": {
+    "node-addon-api": "^1.7.1"
+  }
+}
