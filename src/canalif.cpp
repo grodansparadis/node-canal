@@ -396,6 +396,7 @@ CCanalIf::CanalClose()
         return CANAL_ERROR_NOT_OPEN;
     }
 
+    usleep(500); // Give driver some time to write out pending data
     int rv = m_proc_CanalClose(m_openHandle);
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;
@@ -463,19 +464,23 @@ CCanalIf::CanalBlockingSend(canalMsg* pcanmsg, uint32_t timeout)
 //
 
 int
-CCanalIf::CanalReceive(std::string &strCanMsg)
+CCanalIf::CanalReceive(canalMsg* pcanmsg)
 {
-    canalMsg CanMsg;
+    // Check pointer
+    if ( NULL == pcanmsg ) {
+        return CANAL_ERROR_PARAMETER;
+    }
 
     // Must be open
     if (0 == m_openHandle) {
         return CANAL_ERROR_NOT_OPEN;
     }
 
-    int rv = m_proc_CanalReceive(m_openHandle, &CanMsg);
+    int rv = m_proc_CanalReceive(m_openHandle, pcanmsg);
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;
     }
+    
     return CANAL_ERROR_SUCCESS;
 }
 

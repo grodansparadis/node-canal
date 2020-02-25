@@ -102,7 +102,7 @@ public:
 
         @return CANAL_ERROR_SUCCESS on success, CANAL error code on failure
     */
-    int CanalReceive(std::string &strCanMsg);
+    int CanalReceive(canalMsg* pcanmsg);
 
     /*!
         CanalBlockingReceive

@@ -24,11 +24,14 @@ private:
   // Wrapper for CanalClose
   Napi::Value close(const Napi::CallbackInfo &info);
 
-  // Wrapper for CanalClose
+  // Wrapper for CanalSend
   Napi::Value send(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalReceive
+  Napi::Value receive(const Napi::CallbackInfo &info);
   
   Napi::Value
-  DataAvailable(const Napi::CallbackInfo &info); // wrapped add function
+  dataAvailable(const Napi::CallbackInfo &info); // wrapped add function
   
   CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
                         // operations.

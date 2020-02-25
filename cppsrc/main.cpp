@@ -1,11 +1,11 @@
 /* cppsrc/main.cpp */
 #include "samples/classexample.h"
 #include "samples/functionexample.h"
+#include <napi.h>
 #include <canal.h>
 #include <canal_macro.h>
 #include <canaldlldef.h>
 #include <canalif.h>
-#include <napi.h>
 #include <node-canal.h>
 
 using namespace Napi;
