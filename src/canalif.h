@@ -29,10 +29,17 @@
 #if !defined(CANALIF_H)
 #define CANALIF_H
 
+#include <semaphore.h>
+
 #include "canaldlldef.h"
 #include <string>
+#include <list>
+
+const int MAX_CAN_MESSAGES = 1000;
 
 class CCanalIf {
+
+public:
 
     CCanalIf();
     ~CCanalIf();
@@ -225,6 +232,17 @@ class CCanalIf {
 
     // Worker thread data
     bool m_bQuit;
+
+    std::list<canalMsg*> m_clientOutputQueue;
+
+    std::list<canalMsg*> m_clientInputQueue;
+
+    // 
+    pthread_mutex_t m_mutexClientOutputQueue;
+    pthread_mutex_t m_mutexClientInputQueue;
+
+    sem_t m_semClientOutputQueue;
+    sem_t m_semClientInputQueue;
 
 public:
 

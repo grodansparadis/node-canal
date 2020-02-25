@@ -61,7 +61,28 @@ CCanalIf::CCanalIf()
     // Open syslog
     openlog("node-canal", LOG_CONS, LOG_LOCAL0);
 
+    if (-1 == sem_init(&m_semClientOutputQueue, 0, 0)) {
+        syslog(LOG_ERR, "Unable to init m_semClientOutputQueue");
+        return;
+    }
+
+    if (-1 == sem_init(&m_semClientInputQueue, 0, 0)) {
+        syslog(LOG_ERR, "Unable to init m_semClientInputQueue");
+        return;
+    }
+
+    if (0 != pthread_mutex_init(&m_mutexClientOutputQueue, NULL)) {
+        syslog(LOG_ERR, "Unable to init m_mutexClientOutputQueue");
+        return;
+    }
+
+    if (0 != pthread_mutex_init(&m_mutexClientInputQueue, NULL)) {
+        syslog(LOG_ERR, "Unable to init m_mutexClientInputQueue");
+        return;
+    }
+
     m_openHandle = 0;
+    m_bQuit = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -70,8 +91,26 @@ CCanalIf::CCanalIf()
 
 CCanalIf::~CCanalIf()
 {
-      // Close syslog
-      closelog();
+    if (0 != sem_destroy(&m_semClientOutputQueue)) {
+        syslog(LOG_ERR, "Unable to destroy m_semClientOutputQueue");
+    }
+
+    if (0 != sem_destroy(&m_semClientInputQueue)) {
+        syslog(LOG_ERR, "Unable to destroy m_semClientInputQueue");
+    }
+
+    if (0 != pthread_mutex_destroy(&m_mutexClientOutputQueue)) {
+        syslog(LOG_ERR, "Unable to destroy m_mutexClientOutputQueue");
+        return;
+    }
+
+    if (0 != pthread_mutex_destroy(&m_mutexClientInputQueue)) {
+        syslog(LOG_ERR, "Unable to destroy m_mutexClientInputQueue");
+        return;
+    }
+
+    // Close syslog
+    closelog();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -710,8 +749,7 @@ void *
 deviceReceiveThread(void *pData)
 {
     canalMsg msg;
-    // Level1MsgOutList::compatibility_iterator nodeLevel1;
-
+ 
     CCanalIf *pif = (CCanalIf *)pData;
     if (NULL == pif) {
         syslog(
@@ -731,13 +769,12 @@ deviceReceiveThread(void *pData)
                                      pif->m_openHandle, &msg, 500)) {
 
             // There must be room in the receive queue
-            if (pif->m_maxItemsInClientReceiveQueue >
-                pif->m_clientOutputQueue.size()) {
+            if (pif->m_clientOutputQueue.size() < MAX_CAN_MESSAGES) {
 
-                vscpEvent *pvscpEvent = new vscpEvent;
-                if (NULL != pvscpEvent) {
+                canalMsg *pmsg = new canalMsg;
+                if (NULL != pmsg) {
 
-                    memset(pvscpEvent, 0, sizeof(vscpEvent));
+                    memset(pmsg, 0, sizeof(canalMsg));
 
                     // Set driver GUID if set
                     /*if ( pif->m_interface_guid.isNULL()
@@ -750,78 +787,12 @@ deviceReceiveThread(void *pData)
                     pvscpEvent->GUID );
                     }*/
 
-                    // Convert CANAL message to VSCP event
-                    vscp_convertCanalToEvent(
-                      pvscpEvent, &msg, pif->m_pClientItem->m_guid.m_id);
-
-                    pvscpEvent->obid = pif->m_pClientItem->m_clientID;
-
-                    // If no GUID is set,
-                    //      - Set driver GUID if it is defined
-                    //      - Set to interface GUID if not.
-
-                    uint8_t ifguid[16];
-
-                    // Save nickname
-                    uint8_t nickname_lsb = pvscpEvent->GUID[15];
-
-                    // Set if to use
-                    memcpy(ifguid, pvscpEvent->GUID, 16);
-                    ifguid[14] = 0;
-                    ifguid[15] = 0;
-
                     // If if is set to zero use interface id
-                    if (vscp_isGUIDEmpty(ifguid)) {
-
-                        // Set driver GUID if set
-                        if (!pif->m_interface_guid.isNULL()) {
-                            pif->m_interface_guid.writeGUID(
-                              pvscpEvent->GUID);
-                        } else {
-                            // If no driver GUID set use interface GUID
-                            pif->m_pClientItem->m_guid.writeGUID(
-                              pvscpEvent->GUID);
-                        }
-
-                        // Preserve nickname
-                        pvscpEvent->GUID[15] = nickname_lsb;
-                    }
-
-                    // =========================================================
-                    //                   Outgoing translations
-                    // =========================================================
-
-                    // Level I measurement events to Level II measurement float
-                    if (pif->m_translation & VSCP_DRIVER_OUT_TR_M1M2F) {
-                        vscp_convertLevel1MeasuremenToLevel2Double(pvscpEvent);
-                    }
-                    // Level I measurement events to Level II measurement string
-                    else if (pif->m_translation &
-                             VSCP_DRIVER_OUT_TR_M1M2S) {
-                        vscp_convertLevel1MeasuremenToLevel2String(pvscpEvent);
-                    }
-
-                    // Level I events to Level I over Level II events
-                    if (pif->m_translation & VSCP_DRIVER_OUT_TR_ALL512) {
-                        pvscpEvent->vscp_class += 512;
-                        uint8_t *p = new uint8_t[16 + pvscpEvent->sizeData];
-                        if (NULL != p) {
-                            memset(p, 0, 16 + pvscpEvent->sizeData);
-                            memcpy(
-                              p + 16, pvscpEvent->pdata, pvscpEvent->sizeData);
-                            pvscpEvent->sizeData += 16;
-                            delete[] pvscpEvent->pdata;
-                            pvscpEvent->pdata = p;
-                        }
-                    }
-
-                    pthread_mutex_lock(
-                      &pif->m_pCtrlObject->m_mutexClientOutputQueue);
-                    pif->m_pCtrlObject->m_clientOutputQueue.push_back(
-                      pvscpEvent);
-                    sem_post(&pif->m_pCtrlObject->m_semClientOutputQueue);
-                    pthread_mutex_unlock(
-                      &pif->m_pCtrlObject->m_mutexClientOutputQueue);
+                    
+                    pthread_mutex_lock(&pif->m_mutexClientOutputQueue);
+                    pif->m_clientOutputQueue.push_back(pmsg);
+                    sem_post(&pif->m_semClientOutputQueue);
+                    pthread_mutex_unlock(&pif->m_mutexClientOutputQueue);
                 }
             }
         }
@@ -839,12 +810,11 @@ deviceReceiveThread(void *pData)
 void *
 deviceWriteThread(void *pData)
 {
-    // Level1MsgOutList::compatibility_iterator nodeLevel1;
-
-    CDeviceItem *pif = (CDeviceItem *)pData;
+    CCanalIf *pif = (CCanalIf *)pData;
     if (NULL == pif) {
-        syslog(LOG_ERR,
-               "deviceLevel1WriteThread quitting due to NULL DevItem object.");
+        syslog(
+          LOG_ERR,
+          "deviceLevel1ReceiveThread quitting due to NULL DevItem object.");
         return NULL;
     }
 
@@ -854,39 +824,27 @@ deviceWriteThread(void *pData)
     while (!pif->m_bQuit) {
 
         // Wait until there is something to send
-        if ((-1 == vscp_sem_wait(
-                     &pif->m_pClientItem->m_semClientInputQueue, 500)) &&
+        if ((-1 == sem_wait(
+                     &pif->m_semClientInputQueue)) &&
             errno == ETIMEDOUT) {
             continue;
         }
 
-        if (pif->m_pClientItem->m_clientInputQueue.size()) {
+        if (pif->m_clientInputQueue.size()) {
 
-            pthread_mutex_lock(
-              &pif->m_pClientItem->m_mutexClientInputQueue);
-            vscpEvent *pqueueEvent =
-              pif->m_pClientItem->m_clientInputQueue.front();
-            pif->m_pClientItem->m_clientInputQueue.pop_front();
-            pthread_mutex_unlock(
-              &pif->m_pClientItem->m_mutexClientInputQueue);
+            pthread_mutex_lock(&pif->m_mutexClientInputQueue);
+            canalMsg *pmsg =
+              pif->m_clientInputQueue.front();
+            pif->m_clientInputQueue.pop_front();
+            pthread_mutex_unlock(&pif->m_mutexClientInputQueue);
 
-            // Trow away event if Level II and Level I interface
-            if ((CLIENT_ITEM_INTERFACE_TYPE_DRIVER_LEVEL1 ==
-                 pif->m_pClientItem->m_type) &&
-                (pqueueEvent->vscp_class > 512)) {
-                vscp_deleteVSCPevent(pqueueEvent);
-                continue;
-            }
-
-            canalMsg canalMsg;
-            vscp_convertEventToCanal(&canalMsg, pqueueEvent);
             if (CANAL_ERROR_SUCCESS ==
                 pif->m_proc_CanalBlockingSend(
-                  pif->m_openHandle, &canalMsg, 300)) {
-                vscp_deleteVSCPevent(pqueueEvent);
+                  pif->m_openHandle, pmsg, 300)) {
+                //vscp_deleteVSCPevent(pqueueEvent);
             } else {
                 // Give it another try
-                sem_post(&pif->m_pCtrlObject->m_semClientOutputQueue);
+                sem_post(&pif->m_semClientOutputQueue);
             }
 
         } // events in queue
