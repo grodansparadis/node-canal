@@ -131,7 +131,7 @@ public:
 
         @return CANAL_ERROR_SUCCESS on success, CANAL error code on failure
     */
-    int CanalGetStatus(std::string &jsonStatus);
+    int CanalGetStatus(PCANALSTATUS pcanStatus);
 
     /*!
         CanalGetStatistics
@@ -149,7 +149,7 @@ public:
 
         @return CANAL_ERROR_SUCCESS on success, CANAL error code on failure
     */
-    int CanalGetStatistics(std::string &jsonStatistics);
+    int CanalGetStatistics(PCANALSTATISTICS pstat);
 
 
     /*!

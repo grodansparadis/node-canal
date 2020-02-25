@@ -33,6 +33,12 @@ private:
   Napi::Value
   dataAvailable(const Napi::CallbackInfo &info); // wrapped add function
   
+  // Wrapper for CanalGetStatus
+  Napi::Value getStatus(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalGetStatistics
+  Napi::Value getStatistics(const Napi::CallbackInfo &info);
+
   CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
                         // operations.
 };

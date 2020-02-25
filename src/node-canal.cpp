@@ -16,6 +16,8 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
           InstanceMethod("send", &CNodeCanal::send),
           InstanceMethod("receive", &CNodeCanal::receive),
           InstanceMethod("dataAvailable", &CNodeCanal::dataAvailable),
+          InstanceMethod("getStatus", &CNodeCanal::getStatus),
+          InstanceMethod("getStatistics", &CNodeCanal::getStatistics),
       });
 
   constructor = Napi::Persistent(func);
@@ -151,7 +153,7 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   }
 
   if (!info[0].IsFunction()) {
-    Napi::TypeError::New(env, "Invalid argument type")
+    Napi::TypeError::New(env, "Invalid argument type (expected function)")
         .ThrowAsJavaScriptException();
     return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
   }
@@ -161,7 +163,7 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   canalMsg canmsg;
   memset(&canmsg, 0, sizeof(canmsg));
 
-  double rv = this->m_pcanalif->CanalReceive(&canmsg);
+  uint32_t rv = this->m_pcanalif->CanalReceive(&canmsg);
   if (CANAL_ERROR_SUCCESS == rv) {
     Napi::Array dataArray = Napi::Array::New(Env(), canmsg.sizeData);
     for ( uint32_t i=0; i<canmsg.sizeData; i++ ) {
@@ -176,7 +178,81 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   }
 
   Napi::Function cb = info[0].As<Napi::Function>();
-  cb.MakeCallback(env.Global(), { obj } ); // {env.Null(), obj}
+  cb.MakeCallback(env.Global(), { obj } ); 
+
+  return Napi::Number::New(env, rv);
+}
+
+/*!
+    getStatus
+*/
+
+Napi::Value CNodeCanal::getStatus(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  if (1 != info.Length()) {
+    Napi::TypeError::New(env, "Invalid argument count")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  if (!info[0].IsFunction()) {
+    Napi::TypeError::New(env, "Invalid argument type (expect object)")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  Napi::Object obj = Napi::Object::New(env);
+
+  canalStatus canStatus;
+  uint32_t rv = this->m_pcanalif->CanalGetStatus(&canStatus);
+  if (CANAL_ERROR_SUCCESS == rv) {
+    obj.Set("channel_status", uint32_t(canStatus.channel_status));
+    obj.Set("lasterrorcode", uint32_t(canStatus.lasterrorcode));
+    obj.Set("lasterrorsubcode", uint32_t(canStatus.lasterrorsubcode));
+  }
+
+  Napi::Function cb = info[0].As<Napi::Function>();
+  cb.MakeCallback(env.Global(), { obj } );
+
+  return Napi::Number::New(env, rv);
+}
+
+/*!
+    getStatistics
+*/
+
+Napi::Value CNodeCanal::getStatistics(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  if (1 != info.Length()) {
+    Napi::TypeError::New(env, "Invalid argument count")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  if (!info[0].IsFunction()) {
+    Napi::TypeError::New(env, "Invalid argument type (expect object)")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  Napi::Object obj = Napi::Object::New(env);
+
+  canalStatistics canStatistics;
+  uint32_t rv = this->m_pcanalif->CanalGetStatistics(&canStatistics);
+  if (CANAL_ERROR_SUCCESS == rv) {
+    obj.Set("cntReceiveFrames", uint32_t(canStatistics.cntReceiveFrames));
+    obj.Set("cntTransmitFrames", uint32_t(canStatistics.cntTransmitFrames));
+    obj.Set("cntReceiveData", uint32_t(canStatistics.cntReceiveData));
+    obj.Set("cntReceiveData", uint32_t(canStatistics.cntTransmitData));
+    obj.Set("cntReceiveData", uint32_t(canStatistics.cntOverruns));
+    obj.Set("cntReceiveData", uint32_t(canStatistics.cntBusWarnings));
+    obj.Set("cntReceiveData", uint32_t(canStatistics.cntBusOff));
+  }
+
+  Napi::Function cb = info[0].As<Napi::Function>();
+  cb.MakeCallback(env.Global(), { obj } );
 
   return Napi::Number::New(env, rv);
 }

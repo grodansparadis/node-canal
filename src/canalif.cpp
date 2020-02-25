@@ -480,7 +480,7 @@ CCanalIf::CanalReceive(canalMsg* pcanmsg)
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;
     }
-    
+
     return CANAL_ERROR_SUCCESS;
 }
 
@@ -521,17 +521,21 @@ CCanalIf::CanalDataAvailable()
 //
 
 int
-CCanalIf::CanalGetStatus(std::string &jsonStatus)
+CCanalIf::CanalGetStatus(PCANALSTATUS pcanStatus)
 {
     int rv;
-    canalStatus CanStatus;
+
+    // Check pointer
+    if ( NULL == pcanStatus ) {
+        return CANAL_ERROR_PARAMETER;
+    }
 
     // Must be open
     if (0 == m_openHandle) {
         return CANAL_ERROR_NOT_OPEN;
     }
 
-    rv = m_proc_CanalGetStatus(m_openHandle, &CanStatus);
+    rv = m_proc_CanalGetStatus(m_openHandle, pcanStatus);
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;
     }
@@ -543,16 +547,19 @@ CCanalIf::CanalGetStatus(std::string &jsonStatus)
 //
 
 int
-CCanalIf::CanalGetStatistics(std::string &jsonStatistics)
+CCanalIf::CanalGetStatistics(PCANALSTATISTICS pstat)
 {
-    canalStatistics CanalStatistics;
+    // Check pointer
+    if ( NULL == pstat ) {
+        return CANAL_ERROR_PARAMETER;
+    }
 
     // Must be open
     if (0 == m_openHandle) {
         return CANAL_ERROR_NOT_OPEN;
     }
 
-    int rv = m_proc_CanalGetStatistics(m_openHandle, &CanalStatistics);
+    int rv = m_proc_CanalGetStatistics(m_openHandle, pstat);
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;
     }
