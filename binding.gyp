@@ -9,6 +9,7 @@
             "cppsrc/samples/functionexample.cpp",
             "cppsrc/samples/actualclass.cpp",
             "cppsrc/samples/classexample.cpp",
+            "src/node-canal.cpp",
             "src/canalif.cpp"
         ],
         'include_dirs': [

@@ -366,6 +366,7 @@ CCanalIf::CanalOpen()
     // Open the device
     m_openHandle =
       m_proc_CanalOpen((const char *)m_strParameter.c_str(), m_deviceFlags);
+    syslog(LOG_INFO, "openhandle :%ld", m_openHandle);
 
     // Check if the driver opened properly
     if (m_openHandle <= 0) {
@@ -390,7 +391,6 @@ CCanalIf::CanalOpen()
 int
 CCanalIf::CanalClose()
 {
-
     // Must be open
     if (0 == m_openHandle) {
         return CANAL_ERROR_NOT_OPEN;
@@ -409,16 +409,19 @@ CCanalIf::CanalClose()
 //
 
 int
-CCanalIf::CanalSend(std::string strMsg)
+CCanalIf::CanalSend(canalMsg* pcanmsg)
 {
-    canalMsg CanMsg;
+    // Check pointer
+    if ( NULL == pcanmsg ) {
+        return CANAL_ERROR_PARAMETER;
+    }
 
     // Must be open
     if (0 == m_openHandle) {
         return CANAL_ERROR_NOT_OPEN;
     }
 
-    int rv = m_proc_CanalSend(m_openHandle, &CanMsg);
+    int rv = m_proc_CanalSend(m_openHandle, pcanmsg);
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;
     }
@@ -430,9 +433,12 @@ CCanalIf::CanalSend(std::string strMsg)
 //
 
 int
-CCanalIf::CanalBlockingSend(std::string &strCanMsg, uint32_t timeout)
+CCanalIf::CanalBlockingSend(canalMsg* pcanmsg, uint32_t timeout)
 {
-    canalMsg CanMsg;
+    // Check pointer
+    if ( NULL == pcanmsg ) {
+        return CANAL_ERROR_PARAMETER;
+    }
 
     // Check if generation 2
     if (NULL == m_proc_CanalBlockingSend) {
@@ -444,7 +450,7 @@ CCanalIf::CanalBlockingSend(std::string &strCanMsg, uint32_t timeout)
         return CANAL_ERROR_NOT_OPEN;
     }
 
-    int rv = m_proc_CanalBlockingSend(m_openHandle, &CanMsg, timeout);
+    int rv = m_proc_CanalBlockingSend(m_openHandle, pcanmsg, timeout);
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;
     }

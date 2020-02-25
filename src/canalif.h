@@ -84,41 +84,18 @@ public:
     /*!
         CanalSend - Send CAN message
 
-        @param strJSON CAN msg to send on JSON format
-        {
-            "can" : {
-                "flags"     : 1234
-                "obid"      : 1234
-                "id"        : 1234
-                "data"      : [1,2,3]
-                "timestamp" : 1234
-            }
-
-            "vscp"      : {
-                “head”:0,
-                “vscpclass”: 10,
-                “vscptype”: 6,
-                "guid": "ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00",
-                "timestamp": 1234567,
-                "datetime": "2018-03-03T12:01:40",
-                "data":[1,2,3,4],
-                “unit”: 0,
-                “sensorindex”: 0,
-                “coding”: 0,
-                “value”: 1.2345,
-            }
-        }
+        @param pcanmsp Pointer to can message
 
         @return CANAL_ERROR_SUCCESS on success, CANAL error code on failure
     */
-    int CanalSend(std::string strJSON);
+    int CanalSend( canalMsg* pcanmsg );
 
     /*!
         CanalBlockingSend
 
         @return CANAL_ERROR_SUCCESS on success, CANAL error code on failure
     */
-    int CanalBlockingSend(std::string &strCanMsg, uint32_t timeout);
+    int CanalBlockingSend(canalMsg* pcanmsg, uint32_t timeout);
 
     /*!
         CanalReceive

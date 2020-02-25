@@ -1,4 +1,4 @@
-//#include <vscphelperlib.h>
+
 #include "functionexample.h"
 
 std::string functionexample::hello()
@@ -46,3 +46,24 @@ Napi::Object functionexample::Init( Napi::Env env, Napi::Object exports )
                         functionexample::AddWrapped));
     return exports;
 }
+
+
+
+/*
+
+// https://github.com/nodejs/node-addon-api/issues/432
+
+FunctionReference r_log;
+void emitLogInJS(char* msg) {
+  if (r_log != nullptr) {
+    Env env = r_log.Env();
+    String message = String::New(env, msg);
+    std::vector<napi_value> args = {message}; 
+    r_log.Call(args);
+  } 
+}
+void register_logger(const CallbackInfo& info) {
+  r_log = Persistent(info[0].As<Function>());
+  myclibrary_register_logger(emitLogInJS);
+}
+*/
