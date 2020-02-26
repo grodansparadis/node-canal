@@ -109,30 +109,59 @@ Napi::Value CNodeCanal::close(const Napi::CallbackInfo &info) {
 Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
-  // flags, canid, data
-  if (info.Length() != 4 || !info[0].IsNumber() || !info[1].IsNumber() ||
-      !info[2].IsNumber() || !info[3].IsObject()) {
-    Napi::TypeError::New(env,
-                         "Three arguments expected (flags,canid,data-array)")
-        .ThrowAsJavaScriptException();
-  }
-
-  Napi::Number flags = info[0].As<Napi::Number>();
-  Napi::Number timestamp = info[1].As<Napi::Number>();
-  Napi::Number canid = info[2].As<Napi::Number>();
-  Napi::Array data_array = info[3].As<Napi::Array>();
-
   canalMsg canmsg;
-  memset(&canmsg, 0, sizeof(canmsg));
-  canmsg.flags = (uint32_t)flags.ToNumber();
-  canmsg.timestamp = (uint32_t)timestamp.ToNumber();
-  canmsg.id = (uint32_t)canid.ToNumber();
-  canmsg.sizeData = data_array.Length();
-  for (uint32_t i = 0; i < data_array.Length(); i++) {
-    Napi::Value val = data_array[i];
-    if (val.IsNumber()) {
-      canmsg.data[i] = (int)val.As<Napi::Number>();
+  memset(&canmsg,0,sizeof(canalMsg));
+
+  if (4 == info.Length()) {
+    // flags, canid, data
+    if (info[0].IsNumber() || info[1].IsNumber() || info[2].IsNumber() ||
+        info[3].IsObject()) {
+
+      Napi::Number flags = info[0].As<Napi::Number>();
+      Napi::Number timestamp = info[1].As<Napi::Number>();
+      Napi::Number canid = info[2].As<Napi::Number>();
+      Napi::Array data_array = info[3].As<Napi::Array>();
+
+      memset(&canmsg, 0, sizeof(canmsg));
+      canmsg.flags = (uint32_t)flags.ToNumber();
+      canmsg.timestamp = (uint32_t)timestamp.ToNumber();
+      canmsg.id = (uint32_t)canid.ToNumber();
+      canmsg.sizeData = data_array.Length();
+      for (uint32_t i = 0; i < data_array.Length(); i++) {
+        Napi::Value val = data_array[i];
+        if (val.IsNumber()) {
+          canmsg.data[i] = (int)val.As<Napi::Number>();
+        }
+      }
+    } else {
+      Napi::TypeError::New(
+          env, "Four arguments expected (flags,canid,data-array) or object")
+          .ThrowAsJavaScriptException();
     }
+  }
+  // { canid: 12132, ... }
+  else if (1 == info.Length() && info[0].IsObject()) {
+    Napi::Object msg = info[0].As<Napi::Object>();
+    canmsg.flags = (uint32_t)msg.Get("flags").ToNumber();
+    bool ext = (bool)msg.Get("ext").ToBoolean();
+    if (ext) canmsg.flags |= CANAL_IDFLAG_EXTENDED;
+    bool rtr = (bool)msg.Get("rtr").ToBoolean();
+    if (rtr) canmsg.flags |= CANAL_IDFLAG_RTR;
+    canmsg.timestamp = (uint32_t)msg.Get("timestamp").ToNumber();
+    canmsg.obid = (uint32_t)msg.Get("obid").ToNumber();
+    canmsg.id = (uint32_t)msg.Get("canid").ToNumber();
+    Napi::Array data_array = msg.Get("data").ToObject().As<Napi::Array>();
+    canmsg.sizeData = data_array.Length();
+      for (uint32_t i = 0; i < data_array.Length(); i++) {
+        Napi::Value val = data_array[i];
+        if (val.IsNumber()) {
+          canmsg.data[i] = (int)val.As<Napi::Number>();
+        }
+      }
+  } else {
+    Napi::TypeError::New(
+        env, "Four arguments expected (flags,canid,data-array) or object")
+        .ThrowAsJavaScriptException();
   }
 
   double num = this->m_pcanalif->CanalSend(&canmsg);
@@ -166,8 +195,8 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   uint32_t rv = this->m_pcanalif->CanalReceive(&canmsg);
   if (CANAL_ERROR_SUCCESS == rv) {
     Napi::Array dataArray = Napi::Array::New(Env(), canmsg.sizeData);
-    for ( uint32_t i=0; i<canmsg.sizeData; i++ ) {
-      dataArray[uint32_t(i)] =  Napi::Number::New(info.Env(), canmsg.data[i]);  
+    for (uint32_t i = 0; i < canmsg.sizeData; i++) {
+      dataArray[uint32_t(i)] = Napi::Number::New(info.Env(), canmsg.data[i]);
     }
     obj.Set("flags", uint32_t(canmsg.flags));
     obj.Set("canid", uint32_t(canmsg.id));
@@ -178,7 +207,7 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   }
 
   Napi::Function cb = info[0].As<Napi::Function>();
-  cb.MakeCallback(env.Global(), { obj } ); 
+  cb.MakeCallback(env.Global(), {obj});
 
   return Napi::Number::New(env, rv);
 }
@@ -213,7 +242,7 @@ Napi::Value CNodeCanal::getStatus(const Napi::CallbackInfo &info) {
   }
 
   Napi::Function cb = info[0].As<Napi::Function>();
-  cb.MakeCallback(env.Global(), { obj } );
+  cb.MakeCallback(env.Global(), {obj});
 
   return Napi::Number::New(env, rv);
 }
@@ -252,7 +281,7 @@ Napi::Value CNodeCanal::getStatistics(const Napi::CallbackInfo &info) {
   }
 
   Napi::Function cb = info[0].As<Napi::Function>();
-  cb.MakeCallback(env.Global(), { obj } );
+  cb.MakeCallback(env.Global(), {obj});
 
   return Napi::Number::New(env, rv);
 }
