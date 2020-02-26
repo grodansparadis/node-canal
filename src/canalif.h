@@ -178,6 +178,14 @@ public:
     int CanalSetBaudrate(uint32_t baudrate);
 
     /*!
+        CanalGetLevel
+
+        Get driver level
+        @return Driver level CANAL_LEVEL_STANDARD / CANAL_LEVEL_USES_TCPIP
+    */
+    uint32_t CanalGetLevel(void);
+
+    /*!
         CanalGetVersion
 
         Get version

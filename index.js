@@ -17,8 +17,10 @@ console.log('CNodeCanal open : ',
     ccc.open());
     var hrTime = process.hrtime()
     console.log(hrTime[0] * 1000000 + hrTime[1] / 1000)
+    
     console.log('CNodeCanal send : ',
     ccc.send(0x2020,(hrTime[0] * 1000000 + hrTime[1] / 1000),123,[1,2,3,4,5] ) );     
+    
     console.log('CNodeCanal send : ',
     ccc.send({
         canid: 0x7f,
@@ -26,9 +28,12 @@ console.log('CNodeCanal open : ',
         obid: 33,
         timestamp: 22,
         data: [11,22,33,44,55,66,77,88],
-        ecxt: true,
+        ext: true,
         rtr: false
     }));
+
+    console.log("Vendor : ", ccc.getVendorString());
+
     while (true) {
         if ( ccc.dataAvailable() ) {
             ccc.receive( (msg) => {

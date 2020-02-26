@@ -18,6 +18,14 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
           InstanceMethod("dataAvailable", &CNodeCanal::dataAvailable),
           InstanceMethod("getStatus", &CNodeCanal::getStatus),
           InstanceMethod("getStatistics", &CNodeCanal::getStatistics),
+          InstanceMethod("setFilter", &CNodeCanal::setFilter),
+          InstanceMethod("setMask", &CNodeCanal::setMask),
+          InstanceMethod("setBaudrate", &CNodeCanal::setBaudrate),
+          InstanceMethod("getLevel", &CNodeCanal::getLevel),
+          InstanceMethod("getVersion", &CNodeCanal::getVersion),
+          InstanceMethod("getDllVersion", &CNodeCanal::getDllVersion),
+          InstanceMethod("getVendorString", &CNodeCanal::getVendorString),
+          InstanceMethod("getDriverInfo", &CNodeCanal::getDriverInfo)          
       });
 
   constructor = Napi::Persistent(func);
@@ -284,4 +292,132 @@ Napi::Value CNodeCanal::getStatistics(const Napi::CallbackInfo &info) {
   cb.MakeCallback(env.Global(), {obj});
 
   return Napi::Number::New(env, rv);
+}
+
+/*!
+    setFilter
+*/
+
+Napi::Value CNodeCanal::setFilter(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  if (1 != info.Length()) {
+    Napi::TypeError::New(env, "Invalid argument count")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  if (!info[0].IsNumber()) {
+    Napi::TypeError::New(env, "Invalid argument type (expect object)")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  uint32_t filter = (uint32_t)info[0].As<Napi::Number>();
+  uint32_t rv = this->m_pcanalif->CanalSetFilter(filter);
+  return Napi::Number::New(env, rv);  
+}
+
+
+/*!
+    setMask
+*/
+
+Napi::Value CNodeCanal::setMask(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  if (1 != info.Length()) {
+    Napi::TypeError::New(env, "Invalid argument count")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  if (!info[0].IsNumber()) {
+    Napi::TypeError::New(env, "Invalid argument type (expect object)")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  uint32_t mask = (uint32_t)info[0].As<Napi::Number>();
+  uint32_t rv = this->m_pcanalif->CanalSetMask(mask);
+  return Napi::Number::New(env, rv);
+}
+
+/*!
+    setBaudrate
+*/
+
+Napi::Value CNodeCanal::setBaudrate(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  if (1 != info.Length()) {
+    Napi::TypeError::New(env, "Invalid argument count")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  if (!info[0].IsNumber()) {
+    Napi::TypeError::New(env, "Invalid argument type (expect object)")
+        .ThrowAsJavaScriptException();
+    return Napi::Number::New(env, CANAL_ERROR_PARAMETER);
+  }
+
+  uint32_t baud = (uint32_t)info[0].As<Napi::Number>();
+  uint32_t rv = this->m_pcanalif->CanalSetBaudrate(baud);
+  return Napi::Number::New(env, rv);
+}
+
+/*!
+    getLevel
+*/
+
+Napi::Value CNodeCanal::getLevel(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  uint32_t level = this->m_pcanalif->CanalGetLevel();
+  return Napi::Number::New(env, level);
+}
+
+/*!
+    getVersion
+*/
+
+Napi::Value CNodeCanal::getVersion(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  uint32_t version = this->m_pcanalif->CanalGetVersion();
+  return Napi::Number::New(env, version);
+}
+
+/*!
+    getDllVersion
+*/
+
+Napi::Value CNodeCanal::getDllVersion(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  uint32_t version = this->m_pcanalif->CanalGetDllVersion();
+  return Napi::Number::New(env, version);
+}
+
+/*!
+    getVendorString
+*/
+
+Napi::Value CNodeCanal::getVendorString(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  const char *pVendorStr = this->m_pcanalif->CanalGetVendorString();
+  return Napi::String::New(env, pVendorStr);
+}
+
+/*!
+    getDriverInfo
+*/
+
+Napi::Value CNodeCanal::getDriverInfo(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  const char *pDriverInfoStr = this->m_pcanalif->CanalGetDriverInfo();
+  return Napi::String::New(env, pDriverInfoStr);
 }

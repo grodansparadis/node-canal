@@ -624,6 +624,21 @@ CCanalIf::CanalSetBaudrate(uint32_t baudrate)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// CanalGetLevel
+//
+
+uint32_t
+CCanalIf::CanalGetLevel(void)
+{
+    // Must be open
+    if (0 == m_openHandle) {
+        return CANAL_ERROR_NOT_OPEN;
+    }
+    
+    return  m_proc_CanalGetLevel(m_openHandle);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // CanalGetVersion
 //
 

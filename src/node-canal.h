@@ -39,6 +39,30 @@ private:
   // Wrapper for CanalGetStatistics
   Napi::Value getStatistics(const Napi::CallbackInfo &info);
 
+  // Wrapper for CanalSetFilter
+  Napi::Value setFilter(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalSetMask
+  Napi::Value setMask(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalSetBaudrate
+  Napi::Value setBaudrate(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalGetLevel
+  Napi::Value getLevel(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalGetVersion
+  Napi::Value getVersion(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalGetDllVersion
+  Napi::Value getDllVersion(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalGetVendorString
+  Napi::Value getVendorString(const Napi::CallbackInfo &info);
+
+  // Wrapper for CanalGetDriverInfo
+  Napi::Value getDriverInfo(const Napi::CallbackInfo &info);
+
   CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
                         // operations.
 };
