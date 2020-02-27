@@ -1,7 +1,10 @@
 /* cppsrc/Samples/classexample.h */
 
+#include <pthread.h>
 #include "canalif.h"
 #include <napi.h>
+
+
 
 class CNodeCanal : public Napi::ObjectWrap<CNodeCanal> {
 public:
@@ -9,6 +12,8 @@ public:
   Init(Napi::Env env,
        Napi::Object exports); // Init function for setting the export key to JS
   CNodeCanal(const Napi::CallbackInfo &info); // Constructor to initialise
+
+  CCanalIf *getIfPointer() { return m_pcanalif; };
 
 private:
   static Napi::FunctionReference
@@ -63,6 +68,10 @@ private:
   // Wrapper for CanalGetDriverInfo
   Napi::Value getDriverInfo(const Napi::CallbackInfo &info);
 
+  // Wrapper for CanalGetDriverInfo
+  Napi::Value asyncReceive(const Napi::CallbackInfo &info);
+
   CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
                         // operations.
+  pthread_t m_wrkthread;                        
 };

@@ -381,6 +381,8 @@ CCanalIf::CanalOpen()
     // Get Driver Level
     m_driverLevel = m_proc_CanalGetLevel(m_openHandle);
 
+    //pthread_create(&(m_wrkthread), NULL, &deviceReceiveThread, this );
+
     return CANAL_ERROR_SUCCESS;
 }
 
@@ -489,7 +491,7 @@ CCanalIf::CanalReceive(canalMsg* pcanmsg)
 //
 
 int
-CCanalIf::CanalBlockingReceive(std::string &strCanMsg, uint32_t timeout)
+CCanalIf::CanalBlockingReceive(canalMsg* pcanmsg, uint32_t timeout)
 {
     canalMsg CanMsg;
 
@@ -498,11 +500,8 @@ CCanalIf::CanalBlockingReceive(std::string &strCanMsg, uint32_t timeout)
         return CANAL_ERROR_NOT_OPEN;
     }
 
-    int rv = m_proc_CanalBlockingReceive(m_openHandle, &CanMsg, timeout);
-    if (CANAL_ERROR_SUCCESS != rv) {
-        return rv;
-    }
-    return CANAL_ERROR_SUCCESS;
+    return m_proc_CanalBlockingReceive(m_openHandle, &CanMsg, timeout);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -774,6 +773,15 @@ CCanalIf::CanalGetDriverInfo(void)
 
 // ****************************************************************************
 
+// auto callback = []( Napi::Env env, Napi::Function jsCallback, int* value ) {
+//     // Transform native data into JS data, passing it to the provided 
+//     // `jsCallback` -- the TSFN's JavaScript function.
+//     jsCallback.Call( {Napi::Number::New( env, *value )});
+
+//     // We're finished with the data.
+//     delete value; 
+// };
+
 ///////////////////////////////////////////////////////////////////////////////
 // deviceReceiveThread
 //
@@ -782,12 +790,35 @@ void *
 deviceReceiveThread(void *pData)
 {
     canalMsg msg;
- 
+
+    auto callback = []( Napi::Env env, Napi::Function jsCallback, int* value ) {
+      // Transform native data into JS data, passing it to the provided 
+      // `jsCallback` -- the TSFN's JavaScript function.
+      jsCallback.Call( {Napi::Number::New( env, *value )} );
+      
+      // We're finished with the data.
+      delete value;
+    };
+
+    // threadData* thdata = (threadData*) pData;
+    // if (NULL == thdata) {
+    //     syslog(
+    //       LOG_ERR,
+    //       "deviceReceiveThread quitting due to NULL pData object.");
+    //     return NULL;
+    // }
+
+    
+      
+    // We're finished with the data.
+    // delete value;
+    // };
+
     CCanalIf *pif = (CCanalIf *)pData;
     if (NULL == pif) {
         syslog(
           LOG_ERR,
-          "deviceLevel1ReceiveThread quitting due to NULL DevItem object.");
+          "deviceReceiveThread quitting due to NULL thdata->pif object.");
         return NULL;
     }
 
@@ -798,38 +829,36 @@ deviceReceiveThread(void *pData)
 
     while (!pif->m_bQuit) {
 
-        if (CANAL_ERROR_SUCCESS == pif->m_proc_CanalBlockingReceive(
-                                     pif->m_openHandle, &msg, 500)) {
+        if (CANAL_ERROR_SUCCESS == 
+           pif->m_proc_CanalBlockingReceive(pif->m_openHandle, 
+                                                &msg, 
+                                                500)) {
 
-            // There must be room in the receive queue
-            if (pif->m_clientOutputQueue.size() < MAX_CAN_MESSAGES) {
-
-                canalMsg *pmsg = new canalMsg;
-                if (NULL != pmsg) {
-
-                    memset(pmsg, 0, sizeof(canalMsg));
-
-                    // Set driver GUID if set
-                    /*if ( pif->m_interface_guid.isNULL()
-                    ) { pif->m_interface_guid.writeGUID(
-                    pvscpEvent->GUID );
-                    }
-                    else {
-                        // If no driver GUID set use interface GUID
-                        pif->m_guid.writeGUID(
-                    pvscpEvent->GUID );
-                    }*/
-
-                    // If if is set to zero use interface id
-                    
-                    pthread_mutex_lock(&pif->m_mutexClientOutputQueue);
-                    pif->m_clientOutputQueue.push_back(pmsg);
-                    sem_post(&pif->m_semClientOutputQueue);
-                    pthread_mutex_unlock(&pif->m_mutexClientOutputQueue);
-                }
+            //sleep(1);
+            // canalMsg *pmsg = new canalMsg;
+            // if ( NULL == pmsg ) {
+            //     syslog(LOG_ERR,
+            //         "deviceReceiveThread Failed to allocate message object. Terminating!");
+            //     pif->m_bQuit = true;
+            //     continue;
+            // }
+            //int* value = new int( pif->m_clientInputQueue.size() );
+            // napi_status status = pif->tsfn.BlockingCall([=](Napi::Env env, 
+            //     Napi::Function callback) { 
+            //         callback.Call( { Napi::Number::New(env, 
+            //             static_cast<int>(20))}); 
+            //     } );  value,callback
+            napi_status status = pif->tsfn.BlockingCall();
+            if ( status != napi_ok ) {
+                // Handle error
+                //delete value;
             }
+
         }
     }
+
+    // Release the thread-safe function
+    pif->tsfn.Release();
 
     return NULL;
 }

@@ -3,7 +3,7 @@
     "targets": [{
         "target_name": "nodecanal",
         "cflags!": [ "-fno-exceptions" ],
-        "cflags_cc!": [ "-fno-exceptions" ],
+        "cflags_cc!": [ "-fno-exceptions"],
         "sources": [
             "cppsrc/main.cpp",
             "cppsrc/samples/functionexample.cpp",

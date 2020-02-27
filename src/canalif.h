@@ -30,12 +30,33 @@
 #define CANALIF_H
 
 #include <semaphore.h>
+#include <napi.h>
 
 #include "canaldlldef.h"
+
 #include <string>
 #include <list>
 
 const int MAX_CAN_MESSAGES = 1000;
+
+// An item that will be generated from the thread, passed into JavaScript, and
+// ultimately marked as resolved when the JavaScript passes it back into the
+// addon instance with a return value.
+
+// Forward declaration
+class CCanalIf;
+
+// The data associated with an instance of the addon. This takes the place of
+// global static variables, while allowing multiple instances of the addon to
+// co-exist.
+// typedef struct {
+//   pthread_t thread;
+//   napi_threadsafe_function tsfn;
+//   Napi::ThreadSafeFunction _tsfn;
+//   napi_ref thread_item_constructor;
+//   bool js_accepts;
+//   CCanalIf *pif;
+// } threadData;
 
 class CCanalIf {
 
@@ -109,7 +130,7 @@ public:
 
         @return CANAL_ERROR_SUCCESS on success, CANAL error code on failure
     */
-    int CanalBlockingReceive(std::string &strCanMsg, uint32_t timeout=0);
+    int CanalBlockingReceive(canalMsg* pcanmsg, uint32_t timeout=0);
 
     /*!
         CanalDataAvailable
@@ -236,6 +257,11 @@ public:
     
     // DLL handle
     void *m_hdll;
+
+    Napi::ThreadSafeFunction tsfn;
+    //napi_threadsafe_function tsfn;
+    
+    pthread_t m_wrkthread;
 
     // Level I (CANAL) driver methods
     LPFNDLL_CANALOPEN m_proc_CanalOpen;
