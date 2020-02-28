@@ -7,8 +7,8 @@
 void *deviceReceiveThread(void *pData);
 
 // Forward declaration
-//static napi_value startThread(napi_env env, napi_callback_info info);
-//static void thdata_is_unloading(napi_env env, void *data, void *hint);
+// static napi_value startThread(napi_env env, napi_callback_info info);
+// static void thdata_is_unloading(napi_env env, void *data, void *hint);
 
 std::thread nativeThread;
 Napi::ThreadSafeFunction tsfn;
@@ -25,11 +25,12 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
 
   // napi_property_descriptor export_properties[] = {{"startThread", NULL,
   //                                                  startThread, NULL, NULL,
-  //                                                  NULL, napi_default, thdata}};
+  //                                                  NULL, napi_default,
+  //                                                  thdata}};
 
   // Attach the addon data to the exports object to ensure that they are
   // destroyed together.
-  //napi_wrap(env, exports, thdata, thdata_is_unloading, NULL, NULL);
+  // napi_wrap(env, exports, thdata, thdata_is_unloading, NULL, NULL);
 
   Napi::Function func = DefineClass(
       env, "CNodeCanal",
@@ -49,8 +50,7 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("getDllVersion", &CNodeCanal::getDllVersion),
        InstanceMethod("getVendorString", &CNodeCanal::getVendorString),
        InstanceMethod("getDriverInfo", &CNodeCanal::getDriverInfo),
-       InstanceMethod("asyncReceive", &CNodeCanal::asyncReceive)
-      });
+       InstanceMethod("asyncReceive", &CNodeCanal::asyncReceive)});
 
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
@@ -146,19 +146,19 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
   memset(&canmsg, 0, sizeof(canalMsg));
 
   if (4 == info.Length()) {
-    // flags, canid, data
+    // flags, id, data
     if (info[0].IsNumber() || info[1].IsNumber() || info[2].IsNumber() ||
         info[3].IsObject()) {
 
       Napi::Number flags = info[0].As<Napi::Number>();
       Napi::Number timestamp = info[1].As<Napi::Number>();
-      Napi::Number canid = info[2].As<Napi::Number>();
+      Napi::Number id = info[2].As<Napi::Number>();
       Napi::Array data_array = info[3].As<Napi::Array>();
 
       memset(&canmsg, 0, sizeof(canmsg));
       canmsg.flags = (uint32_t)flags.ToNumber();
       canmsg.timestamp = (uint32_t)timestamp.ToNumber();
-      canmsg.id = (uint32_t)canid.ToNumber();
+      canmsg.id = (uint32_t)id.ToNumber();
       canmsg.sizeData = data_array.Length();
       for (uint32_t i = 0; i < data_array.Length(); i++) {
         Napi::Value val = data_array[i];
@@ -168,11 +168,11 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
       }
     } else {
       Napi::TypeError::New(
-          env, "Four arguments expected (flags,canid,data-array) or object")
+          env, "Four arguments expected (flags,id,data-array) or object")
           .ThrowAsJavaScriptException();
     }
   }
-  // { canid: 12132, ... }
+  // { id: 12132, ... }
   else if (1 == info.Length() && info[0].IsObject()) {
     Napi::Object msg = info[0].As<Napi::Object>();
     canmsg.flags = (uint32_t)msg.Get("flags").ToNumber();
@@ -184,7 +184,7 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
       canmsg.flags |= CANAL_IDFLAG_RTR;
     canmsg.timestamp = (uint32_t)msg.Get("timestamp").ToNumber();
     canmsg.obid = (uint32_t)msg.Get("obid").ToNumber();
-    canmsg.id = (uint32_t)msg.Get("canid").ToNumber();
+    canmsg.id = (uint32_t)msg.Get("id").ToNumber();
     Napi::Array data_array = msg.Get("data").ToObject().As<Napi::Array>();
     canmsg.sizeData = data_array.Length();
     for (uint32_t i = 0; i < data_array.Length(); i++) {
@@ -195,7 +195,7 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
     }
   } else {
     Napi::TypeError::New(
-        env, "Four arguments expected (flags,canid,data-array) or object")
+        env, "Four arguments expected (flags,id,data-array) or object")
         .ThrowAsJavaScriptException();
   }
 
@@ -234,7 +234,7 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
       dataArray[uint32_t(i)] = Napi::Number::New(info.Env(), canmsg.data[i]);
     }
     obj.Set("flags", uint32_t(canmsg.flags));
-    obj.Set("canid", uint32_t(canmsg.id));
+    obj.Set("id", uint32_t(canmsg.id));
     obj.Set("obid", uint32_t(canmsg.obid));
     obj.Set("typestamp", uint32_t(canmsg.timestamp));
     obj.Set("sizeData", uint32_t(canmsg.sizeData));
@@ -437,7 +437,6 @@ Napi::Value CNodeCanal::getVendorString(const Napi::CallbackInfo &info) {
   return Napi::String::New(env, pVendorStr);
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // getDriverInfo
 //
@@ -462,17 +461,21 @@ Napi::Value CNodeCanal::getDriverInfo(const Napi::CallbackInfo &info) {
 //   napi_value constructor;
 
 //   // The semantics of this example are such that, once the JavaScript returns
-//   // `false`, the `ThreadItem` structures can no longer be accessed, because the
+//   // `false`, the `ThreadItem` structures can no longer be accessed, because
+//   the
 //   // thread terminates and frees them all. Thus, we record the instant when
-//   // JavaScript returns `false` by setting `addon_data->js_accepts` to `false`
-//   // in `RegisterReturnValue` below, and we use the value here to decide whether
+//   // JavaScript returns `false` by setting `addon_data->js_accepts` to
+//   `false`
+//   // in `RegisterReturnValue` below, and we use the value here to decide
+//   whether
 //   // the data coming in from the secondary thread is stale or not.
-  
+
 //   //if (thdata->js_accepts && !(env == NULL || js_cb == NULL)) {
 
 //     napi_value undefined, js_thread_item;
 
-//     // Retrieve the JavaScript `undefined` value. This will serve as the `this`
+//     // Retrieve the JavaScript `undefined` value. This will serve as the
+//     `this`
 //     // value for the function call.
 //     napi_get_undefined(env, &undefined);
 
@@ -481,17 +484,21 @@ Napi::Value CNodeCanal::getDriverInfo(const Napi::CallbackInfo &info) {
 //     // napi_get_reference_value(env, thdata->thread_item_constructor,
 //     //                          &constructor);
 
-//     // Construct a new instance of the JavaScript class to hold the native item.
-//     napi_new_instance(env, constructor, 0, NULL, &js_thread_item);
+//     // Construct a new instance of the JavaScript class to hold the native
+//     item. napi_new_instance(env, constructor, 0, NULL, &js_thread_item);
 
-//     // Associate the native item with the newly constructed JavaScript object.
-//     // We assume that the JavaScript side will eventually pass this JavaScript
+//     // Associate the native item with the newly constructed JavaScript
+//     object.
+//     // We assume that the JavaScript side will eventually pass this
+//     JavaScript
 //     // object back to us via `RegisterReturnValue`, which will allow the
-//     // eventual deallocation of the native data. That's why we do not provide a
+//     // eventual deallocation of the native data. That's why we do not provide
+//     a
 //     // finalizer here.
 //     napi_wrap(env, js_thread_item, data, NULL, NULL, NULL);
 
-//     // Call the JavaScript function with the item as wrapped into an instance of
+//     // Call the JavaScript function with the item as wrapped into an instance
+//     of
 //     // the JavaScript `ThreadItem` class and the prime.
 //     //napi_call_function(env, undefined, js_cb, 1, &js_thread_item, NULL);
 //   }
@@ -508,16 +515,16 @@ Napi::Value CNodeCanal::getDriverInfo(const Napi::CallbackInfo &info) {
 //   //thdata->tsfn = NULL;
 // }
 
-//Napi::ThreadSafeFunction tsfn;
+// Napi::ThreadSafeFunction tsfn;
 
 ///////////////////////////////////////////////////////////////////////////////
 // asyncReceive
 //
 
 Napi::Value CNodeCanal::asyncReceive(const Napi::CallbackInfo &info) {
-  
-  //size_t argc = 1;
-  //napi_value js_cb;
+
+  // size_t argc = 1;
+  // napi_value js_cb;
   napi_value work_name;
   // threadData *thdata;
 
@@ -537,88 +544,101 @@ Napi::Value CNodeCanal::asyncReceive(const Napi::CallbackInfo &info) {
                           NAPI_AUTO_LENGTH, &work_name);
 
   // napi_create_threadsafe_function(
-  //     env, 
-  //     js_cb, 
-  //     nullptr, 
+  //     env,
+  //     js_cb,
+  //     nullptr,
   //     work_name,
   //     0,              // for an unlimited queue size
   //     1,              // initially only used from the main thread
   //     m_pcanalif,         // data to make use of during finalization
   //     threadFinished, // gets called when the tsfn goes out of use
-  //     m_pcanalif,         // data that can be set here and retrieved on any thread
-  //     callIntoJs,     // function to call into JS
-  //     &m_pcanalif->tsfn);
+  //     m_pcanalif,         // data that can be set here and retrieved on any
+  //     thread callIntoJs,     // function to call into JS &m_pcanalif->tsfn);
 
-  int count = info[1].As<Napi::Number>().Int32Value();
+  // int count = info[1].As<Napi::Number>().Int32Value();
 
-  //Create a ThreadSafeFunction
+  // Create a ThreadSafeFunction
   m_pcanalif->tsfn = Napi::ThreadSafeFunction::New(
       env,
       info[0].As<Napi::Function>(), // JavaScript function called asynchronously
-      work_name,              // Name
-      0,                      // Unlimited queue
-      1,                      // Only one thread will use this initially
-      [](Napi::Env) {         // Finalizer used to clean threads up
+      work_name,                    // Name
+      0,                            // Unlimited queue
+      1,                            // Only one thread will use this initially
+      [](Napi::Env) {               // Finalizer used to clean threads up
         nativeThread.join();
-      } );
+      });
 
-  //pthread_create(&(m_wrkthread), NULL, &deviceReceiveThread, m_pcanalif );
+  // pthread_create(&(m_wrkthread), NULL, &deviceReceiveThread, m_pcanalif );
 
   // Create a native thread
   void *data = (void *)m_pcanalif;
   nativeThread = std::thread([data] {
-
     CCanalIf *pif = (CCanalIf *)data;
 
-    auto callback = [](Napi::Env env, Napi::Function jsCallback, int *value) {
-      
+    auto callback = [](Napi::Env env, 
+                        Napi::Function jsCallback,
+                        canalMsg *pmsg) {
       // Transform native data into JS data, passing it to the provided
       // `jsCallback` -- the TSFN's JavaScript function.
-      jsCallback.Call({Napi::Number::New(env, *value)});
+      // jsCallback.Call({Napi::Number::New(env, *value});
+
+      Napi::Array dataArray = Napi::Array::New(env, pmsg->sizeData);
+      for (uint32_t i = 0; i < pmsg->sizeData; i++) {
+        dataArray[uint32_t(i)] =
+            Napi::Number::New(env, pmsg->data[i]);
+      }
+
+      Napi::Object obj = Napi::Object::New(env);
+      obj.Set("id", uint32_t(pmsg->id));
+      obj.Set("flags", uint32_t(pmsg->flags));
+      obj.Set("obid", uint32_t(pmsg->obid));
+      obj.Set("sizeData", uint32_t(pmsg->sizeData));
+      obj.Set("timestamp", uint32_t(pmsg->timestamp));
+      obj.Set("data", dataArray );
+      jsCallback.Call({obj});
 
       // We're finished with the data.
-      delete value;
+      delete pmsg;
     };
 
     canalMsg msg;
     while (!pif->m_bQuit) {
 
-        if (CANAL_ERROR_SUCCESS == 
-           pif->m_proc_CanalBlockingReceive(pif->m_openHandle, 
-                                                &msg, 
-                                                500)) {
-            int* value = new int( pif->m_clientInputQueue.size() );
-            // napi_status status = pif->tsfn.BlockingCall([=](Napi::Env env, 
-            //      Napi::Function callback) { 
-            //        callback.Call( { Napi::Number::New(env, 
-            //              static_cast<int>(20))}); 
-            //      } );  
-            napi_status status = pif->tsfn.BlockingCall(value,callback);
-            if ( status != napi_ok ) {
-                // Handle error
-                delete value;
-            }
-
+      if (CANAL_ERROR_SUCCESS ==
+          pif->m_proc_CanalBlockingReceive(pif->m_openHandle, &msg, 500)) {
+        int *value = new int(pif->m_clientInputQueue.size());
+        canalMsg *pmsg = new canalMsg();
+        memcpy(pmsg, &msg, sizeof(canalMsg));
+        // napi_status status = pif->tsfn.BlockingCall([=](Napi::Env env,
+        //      Napi::Function callback) {
+        //        callback.Call( { Napi::Number::New(env,
+        //              static_cast<int>(20))});
+        //      } );
+        napi_status status = pif->tsfn.BlockingCall(pmsg, callback);
+        if (status != napi_ok) {
+          // Handle error
+          delete value;
+          delete pmsg;
         }
+      }
     }
 
-  //   for (int i = 0; i < count; i++) {
-  //     // Create new data
-  //     int *value = new int(clock());
+    //   for (int i = 0; i < count; i++) {
+    //     // Create new data
+    //     int *value = new int(clock());
 
-  //     // Perform a blocking call
-  //     napi_status status = tsfn.BlockingCall(value, callback);
-  //     if (status != napi_ok) {
-  //       // Handle error
-  //       break;
-  //     }
+    //     // Perform a blocking call
+    //     napi_status status = tsfn.BlockingCall(value, callback);
+    //     if (status != napi_ok) {
+    //       // Handle error
+    //       break;
+    //     }
 
-  //     std::this_thread::sleep_for(std::chrono::seconds(1));
-  //   }
+    //     std::this_thread::sleep_for(std::chrono::seconds(1));
+    //   }
 
-     // Release the thread-safe function
-     tsfn.Release();
-
+    // Release the thread-safe function
+    tsfn.Release();
   });
 
   return Napi::Boolean::New(env, true);
@@ -636,10 +656,6 @@ Napi::Value CNodeCanal::asyncReceive(const Napi::CallbackInfo &info) {
 //   // Convert `data` into a JavaScript value and return it.
 //   return Napi::Number::New(env, 0);
 // }
-
-
-
-
 
 // Runs on the JS thread.
 // static napi_value startThread(napi_env env, napi_callback_info info) {
@@ -674,17 +690,16 @@ Napi::Value CNodeCanal::asyncReceive(const Napi::CallbackInfo &info) {
 //   // napi_threadsafe_function tsfn;
 
 //   napi_create_threadsafe_function(
-//       env, 
-//       js_cb, 
-//       nullptr, 
+//       env,
+//       js_cb,
+//       nullptr,
 //       work_name,
 //       0,              // for an unlimited queue size
 //       1,              // initially only used from the main thread
 //       thdata,         // data to make use of during finalization
 //       threadFinished, // gets called when the tsfn goes out of use
-//       thdata,         // data that can be set here and retrieved on any thread
-//       callIntoJs,     // function to call into JS
-//       &thdata->tsfn);
+//       thdata,         // data that can be set here and retrieved on any
+//       thread callIntoJs,     // function to call into JS &thdata->tsfn);
 
 //   // Now you can pass `tsfn` to any number of threads. Each one must
 //   // first call `napi_threadsafe_function_acquire()`. Then it may call
