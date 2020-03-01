@@ -1,43 +1,26 @@
 //index.js
-// const inquirer = require('inquirer')
-// var questions = [{
-//   type: 'input',
-//   name: 'name',
-//   message: "What's your name?",
-// }]
 const CANAL = require('./build/Debug/nodecanal.node');
 
+console.log("=======================================================");
 
-console.log('addon :',CANAL);
-console.log(CANAL.hello());
-console.log('Saying :', CANAL.hello());
-console.log('add ', CANAL.add(5, 10));
+const ccc = new CANAL.CNodeCanal();
 
-const classInstance = new CANAL.ClassExample(4.3);
-console.log('Testing class initial value : ',classInstance.getValue());
-console.log('After adding 3.3 : ',classInstance.add(3.3));
+console.log('CNodeCanal init : ',
+ccc.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
+          "vcan0",
+          0));
 
-// inquirer.prompt(questions).then(answers => {
-//   console.log(`Hi ${answers['name']}!`)
-// });
+console.log('CNodeCanal open : ',
+ccc.open());
 
-    const ccc = new CANAL.CNodeCanal();
-
-    console.log('CNodeCanal init : ',
-    ccc.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
-    "vcan0",0));
-
-    console.log('CNodeCanal open : ',
-    ccc.open());
-
-    var hrTime = process.hrtime()
-    console.log(hrTime[0] * 1000000 + hrTime[1] / 1000)
+var hrTime = process.hrtime()
+console.log(hrTime[0] * 1000000 + hrTime[1] / 1000)
     
-    console.log('CNodeCanal send : ',
-    ccc.send(0x2020,(hrTime[0] * 1000000 + hrTime[1] / 1000),123,[1,2,3,4,5] ) );     
+console.log('CNodeCanal send : ',
+ccc.send(0x2020,(hrTime[0] * 1000000 + hrTime[1] / 1000),123,[1,2,3,4,5] ) );     
     
-    console.log('CNodeCanal send : ',
-    ccc.send({
+console.log('CNodeCanal send : ',
+ccc.send({
         canid: 0x7f,
         flags: 0,
         obid: 33,
@@ -47,11 +30,11 @@ console.log('After adding 3.3 : ',classInstance.add(3.3));
         rtr: false
     }));
 
-    console.log("Version : ", ccc.getVersion().toString(16));
-    console.log("DLL version : ", ccc.getDllVersion().toString(16));
-    console.log("Vendor : ", ccc.getVendorString());
+console.log("Version : ", ccc.getVersion().toString(16));
+console.log("DLL version : ", ccc.getDllVersion().toString(16));
+console.log("Vendor : ", ccc.getVendorString());
 
-    const callback = (...args) => { 
+const callback = (...args) => { 
       console.log(new Date, ...args); 
     };
 
@@ -63,7 +46,7 @@ console.log('After adding 3.3 : ',classInstance.add(3.3));
     // }, 2);
 
     void async function() {
-      console.log(await ccc.addListner(callback));
+      console.log(await ccc.addListener(callback));
     }();
     
     // var count;

@@ -87,9 +87,8 @@ private:
   Napi::Value getDriverInfo(const Napi::CallbackInfo &info);
 
   // Wrapper for CanalGetDriverInfo
-  Napi::Value addListner(const Napi::CallbackInfo &info);
+  Napi::Value addListener(const Napi::CallbackInfo &info);
 
   CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
-                        // operations.
-  //pthread_t m_wrkthread;                        
+                        // operations.                        
 };

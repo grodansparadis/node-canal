@@ -6,31 +6,11 @@
 // Workerthreads
 void *deviceReceiveThread(void *pData);
 
-// Forward declaration
-// static napi_value startThread(napi_env env, napi_callback_info info);
-// static void thdata_is_unloading(napi_env env, void *data, void *hint);
-
-//std::thread nativeThread;
-//Napi::ThreadSafeFunction tsfn;
-
 Napi::FunctionReference CNodeCanal::constructor;
 
 Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::HandleScope scope(env);
-
-  // threadData *thdata = (threadData *)malloc(sizeof(*thdata));
-  // memset(thdata, 0, sizeof(*thdata));
-  // thdata->thread = getIfPointer();
-
-  // napi_property_descriptor export_properties[] = {{"startThread", NULL,
-  //                                                  startThread, NULL, NULL,
-  //                                                  NULL, napi_default,
-  //                                                  thdata}};
-
-  // Attach the addon data to the exports object to ensure that they are
-  // destroyed together.
-  // napi_wrap(env, exports, thdata, thdata_is_unloading, NULL, NULL);
 
   Napi::Function func = DefineClass(
       env, "CNodeCanal",
@@ -50,7 +30,7 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("getDllVersion", &CNodeCanal::getDllVersion),
        InstanceMethod("getVendorString", &CNodeCanal::getVendorString),
        InstanceMethod("getDriverInfo", &CNodeCanal::getDriverInfo),
-       InstanceMethod("addListner", &CNodeCanal::addListner)});
+       InstanceMethod("addListener", &CNodeCanal::addListener)});
 
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
@@ -70,33 +50,49 @@ CNodeCanal::CNodeCanal(const Napi::CallbackInfo &info)
   this->m_pcanalif = new CCanalIf();
 }
 
-/*!
-    init
-*/
+
+///////////////////////////////////////////////////////////////////////////////
+// init
+//
 
 Napi::Value CNodeCanal::init(const Napi::CallbackInfo &info) {
 
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length() != 3 || !info[0].IsString() || !info[1].IsString() ||
+  if ((info.Length() < 4) || !info[0].IsString() || !info[1].IsString() ||
       !info[2].IsNumber()) {
-    Napi::TypeError::New(env, "Three arguments expected (path, param, flags)")
+    Napi::TypeError::New(env, "Three or four arguments expected (path, param, flags[,function])")
+        .ThrowAsJavaScriptException();
+  }
+
+  if ((4 == info.Length()) || !info[3].IsFunction()) {
+    Napi::TypeError::New(env, "Four arguments expected (path, param, flags, function)")
         .ThrowAsJavaScriptException();
   }
 
   Napi::String path = info[0].As<Napi::String>();
   Napi::String param = info[1].As<Napi::String>();
   Napi::Number flags = info[2].As<Napi::Number>();
-  int answer = this->m_pcanalif->init(path.ToString(), param.ToString(),
-                                      (uint32_t)flags.ToNumber());
+  Napi::Function callback;
+  if (4 == info.Length()) {
+    callback= info[3].As<Napi::Function>();
+  }
 
-  return Napi::Number::New(info.Env(), answer);
+  int rv = this->m_pcanalif->init(path.ToString(), 
+                                  param.ToString(),
+                                  (uint32_t)flags.ToNumber());
+  if ( (CANAL_ERROR_SUCCESS == rv) && (4 == info.Length()) ) {
+    addListener(callback);
+  }                                    
+
+  return Napi::Number::New(info.Env(), rv);
 }
 
-/*!
-    dataAvailable
-*/
+///////////////////////////////////////////////////////////////////////////////
+// dataAvailable
+// 
+
 Napi::Value CNodeCanal::dataAvailable(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
@@ -105,9 +101,10 @@ Napi::Value CNodeCanal::dataAvailable(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, num);
 }
 
-/*!
-    open
-*/
+
+///////////////////////////////////////////////////////////////////////////////
+// open
+//
 
 Napi::Value CNodeCanal::open(const Napi::CallbackInfo &info) {
 
@@ -118,9 +115,9 @@ Napi::Value CNodeCanal::open(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, num);
 }
 
-/*!
-    close
-*/
+///////////////////////////////////////////////////////////////////////////////
+// close
+//
 
 Napi::Value CNodeCanal::close(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -130,9 +127,9 @@ Napi::Value CNodeCanal::close(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, num);
 }
 
-/*!
-    send
-*/
+///////////////////////////////////////////////////////////////////////////////
+// send
+//
 
 Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -198,9 +195,9 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, num);
 }
 
-/*!
-    receive
-*/
+///////////////////////////////////////////////////////////////////////////////
+// receive
+//
 
 Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -242,9 +239,9 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, rv);
 }
 
-/*!
-    getStatus
-*/
+///////////////////////////////////////////////////////////////////////////////
+// getStatus
+//
 
 Napi::Value CNodeCanal::getStatus(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -277,9 +274,9 @@ Napi::Value CNodeCanal::getStatus(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, rv);
 }
 
-/*!
-    getStatistics
-*/
+///////////////////////////////////////////////////////////////////////////////
+// getStatistics
+//
 
 Napi::Value CNodeCanal::getStatistics(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -316,9 +313,9 @@ Napi::Value CNodeCanal::getStatistics(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, rv);
 }
 
-/*!
-    setFilter
-*/
+///////////////////////////////////////////////////////////////////////////////
+// setFilter
+//
 
 Napi::Value CNodeCanal::setFilter(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -340,9 +337,9 @@ Napi::Value CNodeCanal::setFilter(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, rv);
 }
 
-/*!
-    setMask
-*/
+///////////////////////////////////////////////////////////////////////////////
+// setMask
+//
 
 Napi::Value CNodeCanal::setMask(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -364,9 +361,9 @@ Napi::Value CNodeCanal::setMask(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, rv);
 }
 
-/*!
-    setBaudrate
-*/
+///////////////////////////////////////////////////////////////////////////////
+// setBaudrate
+//
 
 Napi::Value CNodeCanal::setBaudrate(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -388,9 +385,9 @@ Napi::Value CNodeCanal::setBaudrate(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, rv);
 }
 
-/*!
-    getLevel
-*/
+///////////////////////////////////////////////////////////////////////////////
+// getLevel
+//
 
 Napi::Value CNodeCanal::getLevel(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -399,9 +396,9 @@ Napi::Value CNodeCanal::getLevel(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, level);
 }
 
-/*!
-    getVersion
-*/
+///////////////////////////////////////////////////////////////////////////////
+// getVersion
+//
 
 Napi::Value CNodeCanal::getVersion(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -410,9 +407,9 @@ Napi::Value CNodeCanal::getVersion(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, version);
 }
 
-/*!
-    getDllVersion
-*/
+///////////////////////////////////////////////////////////////////////////////
+// getDllVersion
+//
 
 Napi::Value CNodeCanal::getDllVersion(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -421,9 +418,9 @@ Napi::Value CNodeCanal::getDllVersion(const Napi::CallbackInfo &info) {
   return Napi::Number::New(env, version);
 }
 
-/*!
-    getVendorString
-*/
+///////////////////////////////////////////////////////////////////////////////
+// getVendorString
+//
 
 Napi::Value CNodeCanal::getVendorString(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -458,14 +455,13 @@ void finalizerCallback( Napi::Env env,
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// addListner
+// addListener
 //
 
-Napi::Value CNodeCanal::addListner(const Napi::CallbackInfo &info) {
+Napi::Value CNodeCanal::addListener(const Napi::CallbackInfo &info) {
 
   napi_value work_name;
 
-  // thdata->pif = m_pcanalif;
   Napi::Env env = info.Env();
 
   if (info.Length() < 1) {
@@ -492,9 +488,6 @@ Napi::Value CNodeCanal::addListner(const Napi::CallbackInfo &info) {
       0,                            // Unlimited queue
       1,                            // Only one thread will use this initially
       context, // Context,
-      /* [](Napi::Env) {               // Finalizer used to clean threads up
-        workThread.join();
-      } */
       finalizerCallback,
       (void *)nullptr 
     );

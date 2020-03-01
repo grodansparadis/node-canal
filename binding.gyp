@@ -5,10 +5,7 @@
         "cflags!": [ "-fno-exceptions" ],
         "cflags_cc!": [ "-fno-exceptions"],
         "sources": [
-            "cppsrc/main.cpp",
-            "cppsrc/samples/functionexample.cpp",
-            "cppsrc/samples/actualclass.cpp",
-            "cppsrc/samples/classexample.cpp",
+            "src/main.cpp",
             "src/node-canal.cpp",
             "src/canalif.cpp"
         ],
