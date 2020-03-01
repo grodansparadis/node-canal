@@ -404,6 +404,8 @@ CCanalIf::CanalClose()
         return rv;
     }
 
+    m_openHandle = 0;
+
     return CANAL_ERROR_SUCCESS;
 }
 
@@ -712,11 +714,13 @@ deviceReceiveThread(void *pData)
 
     while (!pif->m_bQuit) {
 
-        if (CANAL_ERROR_SUCCESS == 
-           pif->m_proc_CanalBlockingReceive(pif->m_openHandle, 
+        if (0 == pif->m_openHandle) {    
+            if (CANAL_ERROR_SUCCESS == 
+                pif->m_proc_CanalBlockingReceive(pif->m_openHandle, 
                                                 &msg, 
                                                 500)) {
-            ;                                                    
+                sleep(1);                                                    
+            }
         }
     }
 

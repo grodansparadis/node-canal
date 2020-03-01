@@ -1,3 +1,34 @@
+///////////////////////////////////////////////////////////////////////////
+// node-canal.cpp
+//
+// VSCP to CAN conversion node.
+//
+// This file is part of the VSCP (https://www.vscp.org)
+//
+// The MIT License (MIT)
+//
+// Copyright © 2020 Ake Hedman, Grodans Paradis AB
+// <info@grodansparadis.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+
 #include <chrono>
 #include <thread>
 
@@ -29,9 +60,10 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("getVersion", &CNodeCanal::getVersion),
        InstanceMethod("getDllVersion", &CNodeCanal::getDllVersion),
        InstanceMethod("getVendorString", &CNodeCanal::getVendorString),
-       InstanceMethod("getDriverInfo", &CNodeCanal::getDriverInfo),
-       InstanceMethod("addListener", &CNodeCanal::addListener)});
-
+       InstanceMethod("getDriverInfo", &CNodeCanal::getDriverInfo)
+       });
+  // ,
+  //InstanceMethod("addListener", &CNodeCanal::addListener)
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
 
@@ -66,25 +98,26 @@ Napi::Value CNodeCanal::init(const Napi::CallbackInfo &info) {
         .ThrowAsJavaScriptException();
   }
 
-  if ((4 == info.Length()) || !info[3].IsFunction()) {
+  if ((4 == info.Length()) && !info[3].IsFunction()) {
     Napi::TypeError::New(env, "Four arguments expected (path, param, flags, function)")
-        .ThrowAsJavaScriptException();
+        .ThrowAsJavaScriptException();      
   }
 
   Napi::String path = info[0].As<Napi::String>();
   Napi::String param = info[1].As<Napi::String>();
   Napi::Number flags = info[2].As<Napi::Number>();
-  Napi::Function callback;
-  if (4 == info.Length()) {
-    callback= info[3].As<Napi::Function>();
-  }
 
+  if (4 == info.Length()) {
+    m_callback = info[3].As<Napi::Function>();
+  } 
+  
   int rv = this->m_pcanalif->init(path.ToString(), 
                                   param.ToString(),
                                   (uint32_t)flags.ToNumber());
-  if ( (CANAL_ERROR_SUCCESS == rv) && (4 == info.Length()) ) {
-    addListener(callback);
-  }                                    
+
+  if (CANAL_ERROR_SUCCESS == rv) {
+     addListener(env, m_callback);
+  }
 
   return Napi::Number::New(info.Env(), rv);
 }
@@ -111,8 +144,9 @@ Napi::Value CNodeCanal::open(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  double num = this->m_pcanalif->CanalOpen();
-  return Napi::Number::New(env, num);
+  int rv = this->m_pcanalif->CanalOpen();
+
+  return Napi::Number::New(env, rv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,18 +171,20 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
   canalMsg canmsg;
   memset(&canmsg, 0, sizeof(canalMsg));
 
-  if (4 == info.Length()) {
+  if (5 == info.Length()) {
     // flags, id, data
     if (info[0].IsNumber() || info[1].IsNumber() || info[2].IsNumber() ||
         info[3].IsObject()) {
 
       Napi::Number flags = info[0].As<Napi::Number>();
-      Napi::Number timestamp = info[1].As<Napi::Number>();
-      Napi::Number id = info[2].As<Napi::Number>();
-      Napi::Array data_array = info[3].As<Napi::Array>();
+      Napi::Number obid = info[1].As<Napi::Number>();
+      Napi::Number timestamp = info[2].As<Napi::Number>();
+      Napi::Number id = info[3].As<Napi::Number>();
+      Napi::Array data_array = info[4].As<Napi::Array>();
 
       memset(&canmsg, 0, sizeof(canmsg));
       canmsg.flags = (uint32_t)flags.ToNumber();
+      canmsg.obid = (uint32_t)obid.ToNumber();
       canmsg.timestamp = (uint32_t)timestamp.ToNumber();
       canmsg.id = (uint32_t)id.ToNumber();
       canmsg.sizeData = data_array.Length();
@@ -160,7 +196,7 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
       }
     } else {
       Napi::TypeError::New(
-          env, "Four arguments expected (flags,id,data-array) or object")
+          env, "Five arguments expected (flags,obid,timestamp,id,data-array) or object")
           .ThrowAsJavaScriptException();
     }
   }
@@ -244,6 +280,7 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
 //
 
 Napi::Value CNodeCanal::getStatus(const Napi::CallbackInfo &info) {
+  
   Napi::Env env = info.Env();
 
   if (1 != info.Length()) {
@@ -261,11 +298,13 @@ Napi::Value CNodeCanal::getStatus(const Napi::CallbackInfo &info) {
   Napi::Object obj = Napi::Object::New(env);
 
   canalStatus canStatus;
+  memset(&canStatus,0,sizeof(canalStatus));
   uint32_t rv = this->m_pcanalif->CanalGetStatus(&canStatus);
   if (CANAL_ERROR_SUCCESS == rv) {
-    obj.Set("channel_status", uint32_t(canStatus.channel_status));
-    obj.Set("lasterrorcode", uint32_t(canStatus.lasterrorcode));
-    obj.Set("lasterrorsubcode", uint32_t(canStatus.lasterrorsubcode));
+    obj.Set("Channel_Status", uint32_t(canStatus.channel_status));
+    obj.Set("LastErrorCode", uint32_t(canStatus.lasterrorcode));
+    obj.Set("LastErrorSubCode", uint32_t(canStatus.lasterrorsubcode));
+    obj.Set("LastErrorStr", canStatus.lasterrorstr);
   }
 
   Napi::Function cb = info[0].As<Napi::Function>();
@@ -296,15 +335,16 @@ Napi::Value CNodeCanal::getStatistics(const Napi::CallbackInfo &info) {
   Napi::Object obj = Napi::Object::New(env);
 
   canalStatistics canStatistics;
+  memset(&canStatistics,0,sizeof(canalStatistics));
   uint32_t rv = this->m_pcanalif->CanalGetStatistics(&canStatistics);
   if (CANAL_ERROR_SUCCESS == rv) {
     obj.Set("cntReceiveFrames", uint32_t(canStatistics.cntReceiveFrames));
     obj.Set("cntTransmitFrames", uint32_t(canStatistics.cntTransmitFrames));
     obj.Set("cntReceiveData", uint32_t(canStatistics.cntReceiveData));
-    obj.Set("cntReceiveData", uint32_t(canStatistics.cntTransmitData));
-    obj.Set("cntReceiveData", uint32_t(canStatistics.cntOverruns));
-    obj.Set("cntReceiveData", uint32_t(canStatistics.cntBusWarnings));
-    obj.Set("cntReceiveData", uint32_t(canStatistics.cntBusOff));
+    obj.Set("cntTransmitData", uint32_t(canStatistics.cntTransmitData));
+    obj.Set("cntOverruns", uint32_t(canStatistics.cntOverruns));
+    obj.Set("cntBusWarnings", uint32_t(canStatistics.cntBusWarnings));
+    obj.Set("cntBusOff", uint32_t(canStatistics.cntBusOff));
   }
 
   Napi::Function cb = info[0].As<Napi::Function>();
@@ -458,17 +498,10 @@ void finalizerCallback( Napi::Env env,
 // addListener
 //
 
-Napi::Value CNodeCanal::addListener(const Napi::CallbackInfo &info) {
-
+bool CNodeCanal::addListener(Napi::Env &env,
+                                    Napi::Function &callback) 
+{
   napi_value work_name;
-
-  Napi::Env env = info.Env();
-
-  if (info.Length() < 1) {
-    throw Napi::TypeError::New(env, "Expected one arguments");
-  } else if (!info[0].IsFunction()) {
-    throw Napi::TypeError::New(env, "Expected first arg to be function");
-  }
 
   // This string describes the asynchronous work.
   napi_create_string_utf8( env, 
@@ -483,11 +516,11 @@ Napi::Value CNodeCanal::addListener(const Napi::CallbackInfo &info) {
   // Create a ThreadSafeFunction
   context->tsfn = Napi::ThreadSafeFunction::New(
       env,
-      info[0].As<Napi::Function>(), // JavaScript function called asynchronously
-      work_name,                    // Name
-      0,                            // Unlimited queue
-      1,                            // Only one thread will use this initially
-      context, // Context,
+      callback,              // JavaScript function called asynchronously
+      work_name,             // Name
+      0,                     // Unlimited queue
+      1,                     // Only one thread will use this initially
+      context,               // Context,
       finalizerCallback,
       (void *)nullptr 
     );
@@ -525,10 +558,17 @@ Napi::Value CNodeCanal::addListener(const Napi::CallbackInfo &info) {
     canalMsg msg;
     while (!ctx->m_pif->m_bQuit) {
 
-      if (CANAL_ERROR_SUCCESS ==
-          ctx->m_pif->m_proc_CanalBlockingReceive( ctx->m_pif->m_openHandle, 
-                                              &msg, 
-                                              500)) {
+      // Sit and wait for connection if were not connected
+      if ( 0 == ctx->m_pif->m_openHandle ) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        continue;
+      }
+
+      if ( ctx->m_pif->m_openHandle && 
+            (CANAL_ERROR_SUCCESS ==
+          ctx->m_pif->m_proc_CanalBlockingReceive(ctx->m_pif->m_openHandle, 
+                                                    &msg, 
+                                                    500))) {
         canalMsg *pmsg = new canalMsg();
         memcpy(pmsg, &msg, sizeof(canalMsg));
         napi_status status = ctx->tsfn.BlockingCall(pmsg, callback);
@@ -543,6 +583,6 @@ Napi::Value CNodeCanal::addListener(const Napi::CallbackInfo &info) {
 
   });
 
-  return Napi::Boolean::New(env, true);
+  return true;
 }
 
