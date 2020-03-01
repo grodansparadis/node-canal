@@ -63,7 +63,7 @@ console.log('After adding 3.3 : ',classInstance.add(3.3));
     // }, 2);
 
     void async function() {
-      console.log(await ccc.asyncReceive(callback,2));
+      console.log(await ccc.addListner(callback));
     }();
     
     // var count;

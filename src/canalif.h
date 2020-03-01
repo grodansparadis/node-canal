@@ -239,14 +239,15 @@ public:
     // Worker thread data
     bool m_bQuit;
 
+    // Queues
     std::list<canalMsg*> m_clientOutputQueue;
-
     std::list<canalMsg*> m_clientInputQueue;
 
-    // 
+    // Protecters for queues
     pthread_mutex_t m_mutexClientOutputQueue;
     pthread_mutex_t m_mutexClientInputQueue;
 
+    // Protecters for queues
     sem_t m_semClientOutputQueue;
     sem_t m_semClientInputQueue;
 
@@ -258,9 +259,6 @@ public:
     // DLL handle
     void *m_hdll;
 
-    Napi::ThreadSafeFunction tsfn;
-    //napi_threadsafe_function tsfn;
-    
     pthread_t m_wrkthread;
 
     // Level I (CANAL) driver methods

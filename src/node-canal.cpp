@@ -10,8 +10,8 @@ void *deviceReceiveThread(void *pData);
 // static napi_value startThread(napi_env env, napi_callback_info info);
 // static void thdata_is_unloading(napi_env env, void *data, void *hint);
 
-std::thread nativeThread;
-Napi::ThreadSafeFunction tsfn;
+//std::thread nativeThread;
+//Napi::ThreadSafeFunction tsfn;
 
 Napi::FunctionReference CNodeCanal::constructor;
 
@@ -50,18 +50,13 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("getDllVersion", &CNodeCanal::getDllVersion),
        InstanceMethod("getVendorString", &CNodeCanal::getVendorString),
        InstanceMethod("getDriverInfo", &CNodeCanal::getDriverInfo),
-       InstanceMethod("asyncReceive", &CNodeCanal::asyncReceive)});
+       InstanceMethod("addListner", &CNodeCanal::addListner)});
 
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
 
   exports.Set("CNodeCanal", func);
 
-  // napi_define_properties(
-  //     env, exports, sizeof(export_properties) / sizeof(export_properties[0]),
-  //     export_properties);
-  // exports.Set("startThread",
-  //               Napi::Function::New(env, startThread));
   return exports;
 }
 
@@ -448,44 +443,68 @@ Napi::Value CNodeCanal::getDriverInfo(const Napi::CallbackInfo &info) {
   return Napi::String::New(env, pDriverInfoStr);
 }
 
+// The thread-safe function finalizer callback. This callback executes
+// at destruction of thread-safe function, taking as arguments the finalizer
+// data and threadsafe-function context.
+void finalizerCallback( Napi::Env env, 
+                          void *finalizeData,
+                          tsfnContext *context ) {
+  // Join the thread
+  context->workThread.join();
+
+  // Resolve the Promise previously returned to JS via the CreateTSFN method.
+  context->deferred.Resolve(Napi::Boolean::New(env, true));
+  delete context;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
-// asyncReceive
+// addListner
 //
 
-Napi::Value CNodeCanal::asyncReceive(const Napi::CallbackInfo &info) {
+Napi::Value CNodeCanal::addListner(const Napi::CallbackInfo &info) {
 
   napi_value work_name;
 
   // thdata->pif = m_pcanalif;
   Napi::Env env = info.Env();
 
-  if (info.Length() < 2) {
-    throw Napi::TypeError::New(env, "Expected two arguments");
+  if (info.Length() < 1) {
+    throw Napi::TypeError::New(env, "Expected one arguments");
   } else if (!info[0].IsFunction()) {
     throw Napi::TypeError::New(env, "Expected first arg to be function");
-  } else if (!info[1].IsNumber()) {
-    throw Napi::TypeError::New(env, "Expected second arg to be number");
   }
 
   // This string describes the asynchronous work.
-  napi_create_string_utf8(env, "Thread-safe Function Round Trip Example",
-                          NAPI_AUTO_LENGTH, &work_name);
+  napi_create_string_utf8( env, 
+                            "addListner",
+                            NAPI_AUTO_LENGTH, 
+                            &work_name);
+
+  // Construct context data
+  auto context = new tsfnContext(env); 
+  context->m_pif = m_pcanalif;                   
 
   // Create a ThreadSafeFunction
-  m_pcanalif->tsfn = Napi::ThreadSafeFunction::New(
+  context->tsfn = Napi::ThreadSafeFunction::New(
       env,
       info[0].As<Napi::Function>(), // JavaScript function called asynchronously
       work_name,                    // Name
       0,                            // Unlimited queue
       1,                            // Only one thread will use this initially
-      [](Napi::Env) {               // Finalizer used to clean threads up
-        nativeThread.join();
-      });
+      context, // Context,
+      /* [](Napi::Env) {               // Finalizer used to clean threads up
+        workThread.join();
+      } */
+      finalizerCallback,
+      (void *)nullptr 
+    );
 
   // Create a native thread
-  void *data = (void *)m_pcanalif;
-  nativeThread = std::thread([data] {
-    CCanalIf *pif = (CCanalIf *)data;
+
+  void *data = (void *)context;
+  context->workThread = std::thread([data] {
+
+    tsfnContext *ctx = (tsfnContext *)data;
 
     auto callback = [](Napi::Env env, 
                         Napi::Function jsCallback,
@@ -511,13 +530,15 @@ Napi::Value CNodeCanal::asyncReceive(const Napi::CallbackInfo &info) {
     };
 
     canalMsg msg;
-    while (!pif->m_bQuit) {
+    while (!ctx->m_pif->m_bQuit) {
 
       if (CANAL_ERROR_SUCCESS ==
-          pif->m_proc_CanalBlockingReceive(pif->m_openHandle, &msg, 500)) {
+          ctx->m_pif->m_proc_CanalBlockingReceive( ctx->m_pif->m_openHandle, 
+                                              &msg, 
+                                              500)) {
         canalMsg *pmsg = new canalMsg();
         memcpy(pmsg, &msg, sizeof(canalMsg));
-        napi_status status = pif->tsfn.BlockingCall(pmsg, callback);
+        napi_status status = ctx->tsfn.BlockingCall(pmsg, callback);
         if (status != napi_ok) {
           // Handle error
           delete pmsg;
@@ -525,7 +546,7 @@ Napi::Value CNodeCanal::asyncReceive(const Napi::CallbackInfo &info) {
       }
     }
 
-    tsfn.Release();
+    ctx->tsfn.Release();
 
   });
 

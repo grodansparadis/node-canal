@@ -4,7 +4,25 @@
 #include "canalif.h"
 #include <napi.h>
 
+#include <thread>
 
+struct tsfnContext {
+
+  tsfnContext(Napi::Env env) : deferred(Napi::Promise::Deferred::New(env)) {
+    ;
+  };
+
+  // Native Promise returned to JavaScript
+  Napi::Promise::Deferred deferred;
+
+  // CANAL interface
+  CCanalIf *m_pif;
+
+  // Native thread
+  std::thread workThread;
+
+  Napi::ThreadSafeFunction tsfn;
+};
 
 class CNodeCanal : public Napi::ObjectWrap<CNodeCanal> {
 public:
@@ -69,9 +87,9 @@ private:
   Napi::Value getDriverInfo(const Napi::CallbackInfo &info);
 
   // Wrapper for CanalGetDriverInfo
-  Napi::Value asyncReceive(const Napi::CallbackInfo &info);
+  Napi::Value addListner(const Napi::CallbackInfo &info);
 
   CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
                         // operations.
-  pthread_t m_wrkthread;                        
+  //pthread_t m_wrkthread;                        
 };

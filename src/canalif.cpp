@@ -682,105 +682,11 @@ CCanalIf::CanalGetDriverInfo(void)
     return  m_proc_CanalGetdriverInfo();
 }
 
-// ------------------------------------------------------------------------------------
-
-//pif))
-// {
-//     syslog(LOG_ERR,
-//            "%s: Unable to run the device Level II write worker thread.",
-//            pif->m_strPath.c_str());
-//     dlclose(m_hdll);
-//     return NULL; // TODO close dll
-// }
-
-// if (pCtrlObj->m_debugFlags[0] & VSCP_DEBUG1_DRIVER) {
-//     syslog(LOG_DEBUG,
-//            "%s: [Device tread] Level II Write thread created.",
-//            pif->m_strPath.c_str());
-// }
 
 /////////////////////////////////////////////////////////////////////////////
 // Device read worker thread
 /////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////
-// initThreads
-//
-
-// int
-// initThreads(void *pData)
-// {
-//     if (pthread_create(&pif->m_level2ReceiveThread,
-//                    NULL,
-//                    deviceReceiveThread,
-//                    pif)) {
-//     syslog(LOG_ERR,
-//            "%s: Unable to run the device Level II read worker thread.",
-//            pif->m_strPath.c_str());
-//     pif->m_bQuit = true;
-//     pthread_join(pif->m_level2WriteThread, NULL);
-//     dlclose(m_hdll);
-//     return NULL; // TODO close dll, kill other thread
-// }
-
-// if (pCtrlObj->m_debugFlags[0] & VSCP_DEBUG1_DRIVER) {
-//     syslog(LOG_DEBUG,
-//            "%s: [Device tread] Level II Write thread created.",
-//            pif->m_strPath.c_str());
-// }
-
-// Just sit and wait until the end of the world as we know it...
-// while (!pif->m_bQuit) {
-//     sleep(1);
-// }
-
-// if (pCtrlObj->m_debugFlags[0] & VSCP_DEBUG1_DRIVER) {
-//     syslog(LOG_DEBUG,
-//            "%s: [Device tread] Level II Closing.",
-//            pif->m_strPath.c_str());
-// }
-
-// Close channel
-// m_proc_VSCPClose(pif->m_openHandle);
-
-// if (pCtrlObj->m_debugFlags[0] & VSCP_DEBUG1_DRIVER) {
-//     syslog(LOG_DEBUG,
-//            "%s: [Device tread] Level II Closed.",
-//            pif->m_strPath.c_str());
-// }
-
-
-//   pif->m_bQuit = true;
-// pthread_join(pif->m_level2WriteThread, NULL);
-// pthread_join(pif->m_level2ReceiveThread, NULL);
-
-// Unload dll
-// dlclose(m_hdll);
-
-// if (pCtrlObj->m_debugFlags[0] & VSCP_DEBUG1_DRIVER) {
-//     syslog(LOG_DEBUG,
-//            "%s: [Device tread] Level II Done waiting for threads.",
-//            pif->m_strPath.c_str());
-// }
-
-// Remove messages in the client queues
-// pthread_mutex_lock(&pCtrlObj->m_clientList.m_mutexItemList);
-// pCtrlObj->removeClient(pClientItem);
-// pthread_mutex_unlock(&pCtrlObj->m_clientList.m_mutexItemList);
-
-// return NULL;
-// }
-
-// ****************************************************************************
-
-// auto callback = []( Napi::Env env, Napi::Function jsCallback, int* value ) {
-//     // Transform native data into JS data, passing it to the provided 
-//     // `jsCallback` -- the TSFN's JavaScript function.
-//     jsCallback.Call( {Napi::Number::New( env, *value )});
-
-//     // We're finished with the data.
-//     delete value; 
-// };
 
 ///////////////////////////////////////////////////////////////////////////////
 // deviceReceiveThread
@@ -790,29 +696,6 @@ void *
 deviceReceiveThread(void *pData)
 {
     canalMsg msg;
-
-    auto callback = []( Napi::Env env, Napi::Function jsCallback, int* value ) {
-      // Transform native data into JS data, passing it to the provided 
-      // `jsCallback` -- the TSFN's JavaScript function.
-      jsCallback.Call( {Napi::Number::New( env, *value )} );
-      
-      // We're finished with the data.
-      delete value;
-    };
-
-    // threadData* thdata = (threadData*) pData;
-    // if (NULL == thdata) {
-    //     syslog(
-    //       LOG_ERR,
-    //       "deviceReceiveThread quitting due to NULL pData object.");
-    //     return NULL;
-    // }
-
-    
-      
-    // We're finished with the data.
-    // delete value;
-    // };
 
     CCanalIf *pif = (CCanalIf *)pData;
     if (NULL == pif) {
@@ -833,32 +716,9 @@ deviceReceiveThread(void *pData)
            pif->m_proc_CanalBlockingReceive(pif->m_openHandle, 
                                                 &msg, 
                                                 500)) {
-
-            //sleep(1);
-            // canalMsg *pmsg = new canalMsg;
-            // if ( NULL == pmsg ) {
-            //     syslog(LOG_ERR,
-            //         "deviceReceiveThread Failed to allocate message object. Terminating!");
-            //     pif->m_bQuit = true;
-            //     continue;
-            // }
-            //int* value = new int( pif->m_clientInputQueue.size() );
-            // napi_status status = pif->tsfn.BlockingCall([=](Napi::Env env, 
-            //     Napi::Function callback) { 
-            //         callback.Call( { Napi::Number::New(env, 
-            //             static_cast<int>(20))}); 
-            //     } );  value,callback
-            napi_status status = pif->tsfn.BlockingCall();
-            if ( status != napi_ok ) {
-                // Handle error
-                //delete value;
-            }
-
+            ;                                                    
         }
     }
-
-    // Release the thread-safe function
-    pif->tsfn.Release();
 
     return NULL;
 }
