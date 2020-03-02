@@ -31,16 +31,18 @@
 
 "use strict";
 
-const CANAL = require('../build/Debug/nodecanal.node');
+const CANAL = require('bindings')('nodecanal');
 const can = new CANAL.CNodeCanal();
+
+var rv;
 
 console.log('polling.js');
 console.log('===========');
 
 console.log('CNodeCanal init : ',
-can.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
-          "vcan0",
-          0 ));
+rv = can.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
+                "vcan0",
+                0 ));
 
 if ( CANAL.CANAL_ERROR_SUCCESS != rv ) {
     console.log("Failed to initialized CANAL driver. Return code=",rv);

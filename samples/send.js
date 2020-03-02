@@ -31,7 +31,7 @@
 
 "use strict";
 
-const CANAL = require('../build/Debug/nodecanal.node');
+const CANAL = require('bindings')('nodecanal');
 const can = new CANAL.CNodeCanal();
 
 var rv;

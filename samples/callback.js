@@ -31,7 +31,7 @@
 
 "use strict";
 
-const CANAL = require('../build/Debug/nodecanal.node');
+const CANAL = require('bindings')('nodecanal');
 const can = new CANAL.CNodeCanal();
 
 var rv;
@@ -48,10 +48,10 @@ const callback = (canmsg) => {
 };
 
 console.log('CNodeCanal init : ',
-can.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
-          "vcan0",
-          0,
-          callback ));
+rv = can.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
+                "vcan0",
+                0,
+                callback ));
 
 if ( CANAL.CANAL_ERROR_SUCCESS != rv ) {
   console.log("Failed to initialized CANAL driver. Return code=",rv);

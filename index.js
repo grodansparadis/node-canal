@@ -31,7 +31,5 @@
 
 "use strict";
 
-// const CANAL = require('./build/Release/nodecanal.node');
-const CANAL = require('bindings')('node-canal'); 
-
+const CANAL = require('bindings')('nodecanal'); 
 module.exports = CANAL;

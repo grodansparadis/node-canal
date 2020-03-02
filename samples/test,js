@@ -1,4 +1,4 @@
-const CANAL = require('node-canal');
+const CANAL = require('bindings')('nodecanal');
 const can = new CANAL.CNodeCanal();
 
 // var rv;
