@@ -62,12 +62,69 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("getVendorString", &CNodeCanal::getVendorString),
        InstanceMethod("getDriverInfo", &CNodeCanal::getDriverInfo)
        });
-  // ,
-  //InstanceMethod("addListener", &CNodeCanal::addListener)
+
   constructor = Napi::Persistent(func);
   constructor.SuppressDestruct();
 
   exports.Set("CNodeCanal", func);
+
+  // Error constants
+  exports.Set("CANAL_ERROR_SUCCESS", Napi::Number::New(env,            0 )); /* All is OK */
+  exports.Set("CANAL_ERROR_BAUDRATE", Napi::Number::New(env,           1 )); /* Baud rate error */
+  exports.Set("CANAL_ERROR_BUS_OFF", Napi::Number::New(env,            2 )); /* Bus off error */
+  exports.Set("CANAL_ERROR_BUS_PASSIVE", Napi::Number::New(env,        3 )); /* Bus Passive error */
+  exports.Set("CANAL_ERROR_BUS_WARNING", Napi::Number::New(env,        4 )); /* Bus warning error */
+  exports.Set("CANAL_ERROR_CAN_ID", Napi::Number::New(env,             5 )); /* Invalid CAN ID */
+  exports.Set("CANAL_ERROR_CAN_MESSAGE", Napi::Number::New(env,        6 )); /* Invalid CAN message */
+  exports.Set("CANAL_ERROR_CHANNEL", Napi::Number::New(env,            7 )); /* Invalid channel */
+  exports.Set("CANAL_ERROR_FIFO_EMPTY", Napi::Number::New(env,         8 )); /* FIFO is empty */
+  exports.Set("CANAL_ERROR_FIFO_FULL", Napi::Number::New(env,          9 )); /* FIFO is full */
+  exports.Set("CANAL_ERROR_FIFO_SIZE", Napi::Number::New(env,         10 )); /* FIFO size error */
+  exports.Set("CANAL_ERROR_FIFO_WAIT", Napi::Number::New(env,         11 ));
+  exports.Set("CANAL_ERROR_GENERIC", Napi::Number::New(env,           12 )); /* Generic error */
+  exports.Set("CANAL_ERROR_HARDWARE", Napi::Number::New(env,          13 )); /* Hardware error */
+  exports.Set("CANAL_ERROR_INIT_FAIL", Napi::Number::New(env,         14 )); /* Initialization failed */
+  exports.Set("CANAL_ERROR_INIT_MISSING", Napi::Number::New(env,      15 ));
+  exports.Set("CANAL_ERROR_INIT_READY", Napi::Number::New(env,        16 ));
+  exports.Set("CANAL_ERROR_NOT_SUPPORTED", Napi::Number::New(env,     17 )); /* Not supported */
+  exports.Set("CANAL_ERROR_OVERRUN", Napi::Number::New(env,           18 )); /* Overrun */
+  exports.Set("CANAL_ERROR_RCV_EMPTY", Napi::Number::New(env,         19 )); /* Register value error */
+  exports.Set("CANAL_ERROR_TRM_FULL", Napi::Number::New(env,          21 ));
+  exports.Set("CANAL_ERROR_ERRFRM_STUFF", Napi::Number::New(env,      22 )); /* Error frame: stuff error detected */
+  exports.Set("CANAL_ERROR_ERRFRM_FORM", Napi::Number::New(env,       23 )); /* Error frame: form error detected */
+  exports.Set("CANAL_ERROR_ERRFRM_ACK", Napi::Number::New(env,        24 )); /* Error frame: acknowledge error */
+  exports.Set("CANAL_ERROR_ERRFRM_BIT1", Napi::Number::New(env,       25 )); /* Error frame: bit 1 error */
+  exports.Set("CANAL_ERROR_ERRFRM_BIT0", Napi::Number::New(env,       26 )); /* Error frame: bit 0 error */
+  exports.Set("CANAL_ERROR_ERRFRM_CRC", Napi::Number::New(env,        27 )); /* Error frame: CRC error */
+  exports.Set("CANAL_ERROR_LIBRARY", Napi::Number::New(env,           28 )); /* Unable to load library */
+  exports.Set("CANAL_ERROR_PROCADDRESS", Napi::Number::New(env,       29 )); /* Unable get library proc. address */
+  exports.Set("CANAL_ERROR_ONLY_ONE_INSTANCE", Napi::Number::New(env, 30 )); /* Only one instance allowed */
+  exports.Set("CANAL_ERROR_SUB_DRIVER", Napi::Number::New(env,        31 )); /* Problem with sub driver call */
+  exports.Set("CANAL_ERROR_TIMEOUT", Napi::Number::New(env,           32 )); /* Blocking call time-out */
+  exports.Set("CANAL_ERROR_NOT_OPEN", Napi::Number::New(env,          33 )); /* The device is not open. */
+  exports.Set("CANAL_ERROR_PARAMETER", Napi::Number::New(env,         34 )); /* A parameter is invalid. */
+  exports.Set("CANAL_ERROR_MEMORY", Napi::Number::New(env,            35 )); /* Memory exhausted. */
+  exports.Set("CANAL_ERROR_INTERNAL", Napi::Number::New(env,          36 )); /* Some kind of internal program error */
+  exports.Set("CANAL_ERROR_COMMUNICATION", Napi::Number::New(env,     37 ));
+  
+  /* ID flags             */
+  exports.Set("CANAL_IDFLAG_STANDARD", Napi::Number::New(env, 0x00000000 ));  /* Standard message id (11-bit) */
+  exports.Set("CANAL_IDFLAG_EXTENDED", Napi::Number::New(env, 0x00000001 ));  /* Extended message id (29-bit) */
+  exports.Set("CANAL_IDFLAG_RTR", Napi::Number::New(env,      0x00000002 ));  /* RTR-Frame */
+  exports.Set("CANAL_IDFLAG_STATUS", Napi::Number::New(env,   0x00000004 ));  /* This package is a status indication (id holds error code) */
+  exports.Set("CANAL_IDFLAG_SEND", Napi::Number::New(env,     0x80000000 ));  /* Reserved for use by application software to indicate send */
+
+  /* Communication speeds */
+  exports.Set("CANAL_BAUD_USER", Napi::Number::New(env, 0 ));  /* User specified (In CANAL i/f DLL). */
+  exports.Set("CANAL_BAUD_1000", Napi::Number::New(env, 1 ));  /*   1 Mbit */
+  exports.Set("CANAL_BAUD_800", Napi::Number::New(env,  2 ));  /* 800 Kbit */
+  exports.Set("CANAL_BAUD_500", Napi::Number::New(env,  3 ));  /* 500 Kbit */
+  exports.Set("CANAL_BAUD_250", Napi::Number::New(env,  4 ));  /* 250 Kbit */
+  exports.Set("CANAL_BAUD_125", Napi::Number::New(env,  5 ));  /* 125 Kbit */
+  exports.Set("CANAL_BAUD_100", Napi::Number::New(env,  6 ));  /* 100 Kbit */
+  exports.Set("CANAL_BAUD_50", Napi::Number::New(env,   7 ));  /*  50 Kbit */
+  exports.Set("CANAL_BAUD_20", Napi::Number::New(env,   8 ));  /*  20 Kbit */
+  exports.Set("CANAL_BAUD_10", Napi::Number::New(env,   9 ));  /*  10 Kbit */
 
   return exports;
 }
@@ -92,8 +149,13 @@ Napi::Value CNodeCanal::init(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if ((info.Length() < 4) || !info[0].IsString() || !info[1].IsString() ||
-      !info[2].IsNumber()) {
+  if (info.Length() < 3) {
+    Napi::TypeError::New(env, "Three or four arguments expected (path, param, flags[,function])")
+        .ThrowAsJavaScriptException();
+  }
+
+  if ((3 == info.Length()) && 
+      (!info[0].IsString() || !info[1].IsString() || !info[2].IsNumber())) {
     Napi::TypeError::New(env, "Three or four arguments expected (path, param, flags[,function])")
         .ThrowAsJavaScriptException();
   }
@@ -115,7 +177,10 @@ Napi::Value CNodeCanal::init(const Napi::CallbackInfo &info) {
                                   param.ToString(),
                                   (uint32_t)flags.ToNumber());
 
-  if (CANAL_ERROR_SUCCESS == rv) {
+  // Start listener if init succeeded and we have a callback 
+  // function. Poll otherwise
+  if ( (CANAL_ERROR_SUCCESS == rv) && 
+      (4 == info.Length()) ) {
      addListener(env, m_callback);
   }
 
@@ -127,11 +192,12 @@ Napi::Value CNodeCanal::init(const Napi::CallbackInfo &info) {
 // 
 
 Napi::Value CNodeCanal::dataAvailable(const Napi::CallbackInfo &info) {
+  
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  uint32_t num = this->m_pcanalif->CanalDataAvailable();
-  return Napi::Number::New(env, num);
+  uint32_t count = this->m_pcanalif->CanalDataAvailable();
+  return Napi::Number::New(env, count);
 }
 
 

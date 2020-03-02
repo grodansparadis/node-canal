@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // polling.js
 //
-// VSCP to CAN conversion node.
+// node-canal polling example..
 //
 // This file is part of the VSCP (https://www.vscp.org)
 //
@@ -30,3 +30,42 @@
 //
 
 "use strict";
+
+const CANAL = require('../build/Debug/nodecanal.node');
+const can = new CANAL.CNodeCanal();
+
+console.log('polling.js');
+console.log('===========');
+
+console.log('CNodeCanal init : ',
+can.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
+          "vcan0",
+          0 ));
+
+if ( CANAL.CANAL_ERROR_SUCCESS != rv ) {
+    console.log("Failed to initialized CANAL driver. Return code=",rv);
+    process.exit();
+}
+
+console.log('CNodeCanal open : ',can.open());
+
+var id = setInterval(checkMessage, 1000 );
+
+function checkMessage()
+{
+    var count;
+    if ( count = can.dataAvailable() ) {
+        console.log("count = ", count); 
+        var rv = can.receive( (canmsg) => {
+            console.log("Message received:", canmsg)
+            if ( canmsg.id == 0x999 ) {
+                console.log('CNodeCanal close : ',can.close());
+                process.exit();
+              }
+        });
+    }
+    else {
+        console.log("No messages " + count);
+    }
+}
+

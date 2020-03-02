@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // callback.js
 //
-// VSCP to CAN conversion node.
+// node-canal callback example.
 //
 // This file is part of the VSCP (https://www.vscp.org)
 //
@@ -30,4 +30,34 @@
 //
 
 "use strict";
+
+const CANAL = require('../build/Debug/nodecanal.node');
+const can = new CANAL.CNodeCanal();
+
+var rv;
+
+console.log('callback.js');
+console.log('==========');
+
+const callback = (canmsg) => { 
+  console.log(new Date, canmsg); 
+  if ( canmsg.id == 0x999 ) {
+    console.log('CNodeCanal close : ',can.close());
+    process.exit();
+  }
+};
+
+console.log('CNodeCanal init : ',
+can.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
+          "vcan0",
+          0,
+          callback ));
+
+if ( CANAL.CANAL_ERROR_SUCCESS != rv ) {
+  console.log("Failed to initialized CANAL driver. Return code=",rv);
+  process.exit();
+}
+
+console.log('CNodeCanal open : ',can.open());
+
 

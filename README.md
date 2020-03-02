@@ -25,7 +25,7 @@ There are two options for installing node-canal:
     npm run build
 ```
 
-### Install via npm:
+### Install via npm
 
 ```bash
     npm install node-canal
@@ -33,7 +33,7 @@ There are two options for installing node-canal:
 
 ## Usage
 
-Generally below we use the [Socketcan CANAL driver](https://docs.vscp.org/vscpd/13.1/#/level1_driver_socketcan) to illustrated examples. This driver is chosen because it is easy to use on a system without any extra hardware which means everyone can takte it for a test. candump/cansend from the [can-utils](https://github.com/linux-can/can-utils) package is useful tools. Install with 
+Generally below we use the [Socketcan CANAL driver](https://docs.vscp.org/vscpd/13.1/#/level1_driver_socketcan) to illustrated examples. This driver is chosen because it is easy to use on a system without any extra hardware which means everyone can take it for a test. candump/cansend from the [can-utils](https://github.com/linux-can/can-utils) package is useful tools. Install can-utils with 
 
 ```
 sudo apt update
@@ -57,9 +57,9 @@ Before you can use the node-canal functionality, you must first call the init me
 
 The init method specifies the path to the CANAL driver you want to use, a string  and a 32-bit flags value for configuration of it.  
 
-The configurations string consist of a list of configuration values separated with semicolons. The flags value is a bit fields where each bit or pairs of bits represent interface configuration. What values to use for a specific CANAL drivers is documented in the drivers documentation.
+The configurations string consist of a list of configuration values separated by semicolons. The flags value is a bit fields where each bit or groups of bits represent interface configuration. What values to use for a specific CANAL drivers is documented in the specific drivers documentation.
 
-You can use node-canal either in polling mode, where you poll for messages, or in asynchronous mode where you get messages delivered to a function of your choice, when they are received by the CANAL driver.
+You can use node-canal either in polling mode, where you poll for messages, or in asynchronous mode where you get messages delivered to a function of your choice when they are received by the CANAL driver.
 
 #### polling init
 
@@ -69,12 +69,15 @@ To use polling call init like this.
 const CANAL = require('node-canal');
 const can = new CANAL.CNodeCanal();
 
-can.init("/drivers/vscpl1drv-socketcan.so.1.1.0",
-          "vcan0",
-          0 ));
+var rv = can.init("/drivers/vscpl1drv-socketcan.so.1.1.0",
+                  "vcan0",
+                  0 ));
+if ( CANAL.CANAL_ERROR_SUCCESS) {
+  console.log("Initialization OK");
+}                 
 ```
 
-The arguments are obvious. Firts the path to the CANAL driver (here on a Linux system), then the driver configuration string. Here "vcan0", we accept defaults for the rest of the parameters. And last the flags byte which is set to zero.
+The arguments are obvious. First the path to the CANAL driver (here on a Linux system), then the driver configuration string. Here "vcan0", we accept defaults for the rest of the parameters. And last the flags byte which is set to zero.
 
 #### asynchronous init
 
@@ -93,6 +96,9 @@ can.init("/drivers/vscpl1drv-socketcan.so.1.1.0",
           "vcan0",
           0,
           callback ));
+if ( CANAL.CANAL_ERROR_SUCCESS) {
+  console.log("Initialization OK");
+}          
 ```
 
 Here a callback function is added both in itself and as a parameter to init. All other parameters are the same (see description in the polling init).
@@ -106,7 +112,7 @@ Is zero on success or on failure one of the [CANAL error codes](https://docs.vsc
 After you initialized the driver you need to open the interface. The **open** method will do this for you
 
 ```javascript
-if ( 0 != can.open() ) {
+if ( CANAL.CANAL_ERROR_SUCCESS != can.open() ) {
     console.log("There was an error opening CAN interface");
 }
 ```
@@ -120,23 +126,23 @@ Is zero on success or on failure one of the [CANAL error codes](https://docs.vsc
 Close the interface. This should be done when you are ready with the driver.
 
 ```javascript
-if ( 0 != can.close() ) {
+if ( CANAL.CANAL_ERROR_SUCCESS != can.close() ) {
     console.log("There was an error opening CAN interface");
 }
 ```
 
 #### Return value
 
-Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors).
+Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors) is returned.
 
 ###  send
 
-Send a CAN message. You have two oprions. Either you send messages as a bunch of command arguments (flags, timestamp, CAN id and an array for CAN data). Like this
+Send a CAN message. You have two options. Either you send messages as a bunch of command arguments (flags, obid, timestamp, CAN id and an array for CAN data). Like this
 
 ```javascript
 var hrTime = process.hrtime();
 
-can.send(0x2020,(hrTime[0] * 1000000 + hrTime[1] / 1000),123,[1,2,3,4,5] ) );
+can.send(0x2020,0,(hrTime[0] * 1000000 + hrTime[1] / 1000),123,[1,2,3,4,5] ) );
 ```
 
 The **flags** argument is defined [here](https://docs.vscp.org/canal/latest/#/canalMsg) in the CANAL specification.
@@ -149,8 +155,8 @@ The other alternative is to use an object on this form
 var hrTime = process.hrtime();
 
 rv = can.send({
-        canid: 0x7f,
-        flags: 0,
+        id: 0x7f,
+        flags: CANAL.CANAL_IDFLAG_EXTENDED,
         obid: 33,
         timestamp: (hrTime[0] * 1000000 
                       hrTime[1] / 1000),
@@ -158,6 +164,9 @@ rv = can.send({
         ext: true,
         rtr: false
     }));
+if (CANAL.CANAL_ERROR_SUCCESS != rv ) {
+  console.log("There was an error sending message.");
+}    
 ```
 
 The **flags** argument is defined [here](https://docs.vscp.org/canal/latest/#/canalMsg) in the CANAL specification. 
@@ -170,13 +179,13 @@ The **obid** (Object ID) can be used by application programs freely.
 
 #### Return value
 
-Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors).
+Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors) is returned.
 
 ### receive
 
 Use the _receive_ method to synchronously poll for messages. If you use a callback when initializing receive will not work for you.
 
-Use something like this to receive messages.
+Use code like this to receive messages.
 
 ```javascript
 if ( count = can.dataAvailable() ) {
@@ -185,11 +194,11 @@ if ( count = can.dataAvailable() ) {
     });
 ```
 
-This is a synchronous method so the function argument will bne called on return.
+This is a synchronous method so the function argument will be called on return.
 
 #### Return value
 
-Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors).
+Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors) is returned.
 
 ### dataAvailable
 Check how many message there are waiting to be received from the CANAL driver.
@@ -280,7 +289,7 @@ where the parameter is a 32-bit integer with the value that should be checked an
 
 #### Return value
 
-Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors). 
+Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors) is returned. 
 
 CANAL_ERROR_NOT_SUPPORTED (17) is returned if the interface does not support filtering.
 
@@ -292,7 +301,7 @@ The single parameter is the badrate/bitrate to set for the interface.
 
 #### Return value
 
-Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors). 
+Is zero on success or on failure one of the [CANAL error codes](https://docs.vscp.org/canal/latest/#/errors) is returned. 
 
 ### getLevel
 
@@ -340,6 +349,13 @@ This call returns a documentation object in XML form of the configuration string
 
 See [the docs of CanalGetDriverInfo](https://docs.vscp.org/canal/latest/#/canalgetdriverinfo) for a full description.
 
+## Constants
+
+Most constants from the CANAL header is defined including errors, can-flag.bits, communication speeds. See [this page](https://docs.vscp.org/canal/latest/#/errors) for a complete list of error codes. The rtest of the constants can be found in the [canal.h header](https://github.com/grodansparadis/vscp/blob/master/src/vscp/common/canal.h).
+
+## Samples
+
+You have a couple of samples [here](https://github.com/grodansparadis/node-canal/tree/master/samples).
 
 ---
 
