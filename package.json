@@ -1,6 +1,6 @@
 {
   "name": "node-canal",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "CANAL module interface for node.js",
   "main": "index.js",
   "gypfile": true,

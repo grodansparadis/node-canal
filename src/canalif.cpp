@@ -407,6 +407,8 @@ CCanalIf::CanalClose()
 
     m_openHandle = 0;
 
+    dlclose(m_hdll);
+
     return CANAL_ERROR_SUCCESS;
 }
 

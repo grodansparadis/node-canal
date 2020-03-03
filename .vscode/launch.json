@@ -39,7 +39,7 @@
             "request": "launch",
             "name": "Debug samples send.js",
             "preLaunchTask": "npm: build:dev",
-            "program": "/usr/bin/node",
+            "program": "node",
             "args": [
                "/home/akhe/development/VSCP/node-canal/samples/send.js"
             ]

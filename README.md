@@ -158,7 +158,7 @@ rv = can.send({
         id: 0x7f,
         flags: CANAL.CANAL_IDFLAG_EXTENDED,
         obid: 33,
-        timestamp: (hrTime[0] * 1000000 
+        timestamp: (hrTime[0] * 1000000 +
                       hrTime[1] / 1000),
         data: [11,22,33,44,55,66,77,88],
         ext: true,

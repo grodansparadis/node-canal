@@ -244,6 +244,7 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
   memset(&canmsg, 0, sizeof(canalMsg));
 
   if (5 == info.Length()) {
+    
     // flags, id, data
     if (info[0].IsNumber() || info[1].IsNumber() || info[2].IsNumber() ||
         info[3].IsObject()) {
@@ -596,7 +597,7 @@ bool CNodeCanal::addListener(Napi::Env &env,
       finalizerCallback,
       (void *)nullptr 
     );
-
+  
   // Create a native thread
 
   void *data = (void *)context;
