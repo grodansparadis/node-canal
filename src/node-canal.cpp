@@ -43,6 +43,14 @@ Napi::Object CNodeCanal::Init(Napi::Env env, Napi::Object exports) {
 
   Napi::HandleScope scope(env);
 
+  // Get node version
+  const napi_node_version *pversion;
+  napi_get_node_version(env,&pversion);
+
+  // Get napi version
+  uint32_t result;
+  napi_get_version(env,&result);
+
   Napi::Function func = DefineClass(
       env, "CNodeCanal",
       {InstanceMethod("init", &CNodeCanal::init),
@@ -135,8 +143,6 @@ CNodeCanal::CNodeCanal(const Napi::CallbackInfo &info)
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  // Napi::Number value = info[0].As<Napi::Number>();
-  this->m_pcanalif = new CCanalIf();
 }
 
 
@@ -173,7 +179,7 @@ Napi::Value CNodeCanal::init(const Napi::CallbackInfo &info) {
     m_callback = info[3].As<Napi::Function>();
   } 
   
-  int rv = this->m_pcanalif->init(path.ToString(), 
+  int rv = this->m_canalif.init(path.ToString(), 
                                   param.ToString(),
                                   (uint32_t)flags.ToNumber());
 
@@ -187,6 +193,7 @@ Napi::Value CNodeCanal::init(const Napi::CallbackInfo &info) {
   return Napi::Number::New(info.Env(), rv);
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // dataAvailable
 // 
@@ -196,7 +203,7 @@ Napi::Value CNodeCanal::dataAvailable(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  uint32_t count = this->m_pcanalif->CanalDataAvailable();
+  uint32_t count = this->m_canalif.CanalDataAvailable();
   return Napi::Number::New(env, count);
 }
 
@@ -210,11 +217,7 @@ Napi::Value CNodeCanal::open(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  int rv = this->m_pcanalif->CanalOpen();
-
-  // if ( NULL != m_callback ) {
-  //     addListener(env, m_callback);
-  // }
+  int rv = this->m_canalif.CanalOpen();
 
   return Napi::Number::New(env, rv);
 }
@@ -227,9 +230,9 @@ Napi::Value CNodeCanal::close(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  this->m_pcanalif->m_bQuit = true; // Quit the main loop
+  this->m_canalif.m_bQuit = true; // Quit the main loop
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  int rv = this->m_pcanalif->CanalClose();
+  int rv = this->m_canalif.CanalClose();
   return Napi::Number::New(env, rv);
 }
 
@@ -260,7 +263,6 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
       canmsg.obid = (uint32_t)obid.ToNumber();
       canmsg.timestamp = (uint32_t)timestamp.ToNumber();
       canmsg.id = (uint32_t)id.ToNumber();
-      canmsg.sizeData = data_array.Length();
       for (uint32_t i = 0; i < data_array.Length(); i++) {
         Napi::Value val = data_array[i];
         if (val.IsNumber()) {
@@ -282,13 +284,13 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
       canmsg.flags |= CANAL_IDFLAG_EXTENDED;
     bool rtr = (bool)msg.Get("rtr").ToBoolean();
     if (rtr)
-      canmsg.flags |= CANAL_IDFLAG_RTR;
+    canmsg.flags |= CANAL_IDFLAG_RTR;
     canmsg.timestamp = (uint32_t)msg.Get("timestamp").ToNumber();
     canmsg.obid = (uint32_t)msg.Get("obid").ToNumber();
     canmsg.id = (uint32_t)msg.Get("id").ToNumber();
+    canmsg.sizeData = (uint32_t)msg.Get("dlc").ToNumber();
     Napi::Array data_array = msg.Get("data").ToObject().As<Napi::Array>();
-    canmsg.sizeData = data_array.Length();
-    for (uint32_t i = 0; i < data_array.Length(); i++) {
+    for (uint32_t i = 0; i < canmsg.sizeData; i++) {
       Napi::Value val = data_array[i];
       if (val.IsNumber()) {
         canmsg.data[i] = (int)val.As<Napi::Number>();
@@ -300,7 +302,7 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
         .ThrowAsJavaScriptException();
   }
 
-  int rv = this->m_pcanalif->CanalSend(&canmsg);
+  int rv = this->m_canalif.CanalSend(&canmsg);
   return Napi::Number::New(env, rv);
 }
 
@@ -328,8 +330,9 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
   canalMsg canmsg;
   memset(&canmsg, 0, sizeof(canmsg));
 
-  uint32_t rv = this->m_pcanalif->CanalReceive(&canmsg);
+  uint32_t rv = this->m_canalif.CanalReceive(&canmsg);
   if (CANAL_ERROR_SUCCESS == rv) {
+    
     Napi::Array dataArray = Napi::Array::New(Env(), canmsg.sizeData);
     for (uint32_t i = 0; i < canmsg.sizeData; i++) {
       dataArray[uint32_t(i)] = Napi::Number::New(info.Env(), canmsg.data[i]);
@@ -338,7 +341,6 @@ Napi::Value CNodeCanal::receive(const Napi::CallbackInfo &info) {
     obj.Set("id", uint32_t(canmsg.id));
     obj.Set("obid", uint32_t(canmsg.obid));
     obj.Set("typestamp", uint32_t(canmsg.timestamp));
-    obj.Set("sizeData", uint32_t(canmsg.sizeData));
     obj.Set("data", dataArray);
   }
 
@@ -372,7 +374,7 @@ Napi::Value CNodeCanal::getStatus(const Napi::CallbackInfo &info) {
 
   canalStatus canStatus;
   memset(&canStatus,0,sizeof(canalStatus));
-  uint32_t rv = this->m_pcanalif->CanalGetStatus(&canStatus);
+  uint32_t rv = this->m_canalif.CanalGetStatus(&canStatus);
   if (CANAL_ERROR_SUCCESS == rv) {
     obj.Set("Channel_Status", uint32_t(canStatus.channel_status));
     obj.Set("LastErrorCode", uint32_t(canStatus.lasterrorcode));
@@ -409,7 +411,7 @@ Napi::Value CNodeCanal::getStatistics(const Napi::CallbackInfo &info) {
 
   canalStatistics canStatistics;
   memset(&canStatistics,0,sizeof(canalStatistics));
-  uint32_t rv = this->m_pcanalif->CanalGetStatistics(&canStatistics);
+  uint32_t rv = this->m_canalif.CanalGetStatistics(&canStatistics);
   if (CANAL_ERROR_SUCCESS == rv) {
     obj.Set("cntReceiveFrames", uint32_t(canStatistics.cntReceiveFrames));
     obj.Set("cntTransmitFrames", uint32_t(canStatistics.cntTransmitFrames));
@@ -446,7 +448,7 @@ Napi::Value CNodeCanal::setFilter(const Napi::CallbackInfo &info) {
   }
 
   uint32_t filter = (uint32_t)info[0].As<Napi::Number>();
-  uint32_t rv = this->m_pcanalif->CanalSetFilter(filter);
+  uint32_t rv = this->m_canalif.CanalSetFilter(filter);
   return Napi::Number::New(env, rv);
 }
 
@@ -470,7 +472,7 @@ Napi::Value CNodeCanal::setMask(const Napi::CallbackInfo &info) {
   }
 
   uint32_t mask = (uint32_t)info[0].As<Napi::Number>();
-  uint32_t rv = this->m_pcanalif->CanalSetMask(mask);
+  uint32_t rv = this->m_canalif.CanalSetMask(mask);
   return Napi::Number::New(env, rv);
 }
 
@@ -494,7 +496,7 @@ Napi::Value CNodeCanal::setBaudrate(const Napi::CallbackInfo &info) {
   }
 
   uint32_t baud = (uint32_t)info[0].As<Napi::Number>();
-  uint32_t rv = this->m_pcanalif->CanalSetBaudrate(baud);
+  uint32_t rv = this->m_canalif.CanalSetBaudrate(baud);
   return Napi::Number::New(env, rv);
 }
 
@@ -505,7 +507,7 @@ Napi::Value CNodeCanal::setBaudrate(const Napi::CallbackInfo &info) {
 Napi::Value CNodeCanal::getLevel(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
-  uint32_t level = this->m_pcanalif->CanalGetLevel();
+  uint32_t level = this->m_canalif.CanalGetLevel();
   return Napi::Number::New(env, level);
 }
 
@@ -516,7 +518,7 @@ Napi::Value CNodeCanal::getLevel(const Napi::CallbackInfo &info) {
 Napi::Value CNodeCanal::getVersion(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
-  uint32_t version = this->m_pcanalif->CanalGetVersion();
+  uint32_t version = this->m_canalif.CanalGetVersion();
   return Napi::Number::New(env, version);
 }
 
@@ -527,7 +529,7 @@ Napi::Value CNodeCanal::getVersion(const Napi::CallbackInfo &info) {
 Napi::Value CNodeCanal::getDllVersion(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
-  uint32_t version = this->m_pcanalif->CanalGetDllVersion();
+  uint32_t version = this->m_canalif.CanalGetDllVersion();
   return Napi::Number::New(env, version);
 }
 
@@ -538,7 +540,7 @@ Napi::Value CNodeCanal::getDllVersion(const Napi::CallbackInfo &info) {
 Napi::Value CNodeCanal::getVendorString(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
-  const char *pVendorStr = this->m_pcanalif->CanalGetVendorString();
+  const char *pVendorStr = this->m_canalif.CanalGetVendorString();
   return Napi::String::New(env, pVendorStr);
 }
 
@@ -549,7 +551,7 @@ Napi::Value CNodeCanal::getVendorString(const Napi::CallbackInfo &info) {
 Napi::Value CNodeCanal::getDriverInfo(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
-  const char *pDriverInfoStr = this->m_pcanalif->CanalGetDriverInfo();
+  const char *pDriverInfoStr = this->m_canalif.CanalGetDriverInfo();
   return Napi::String::New(env, pDriverInfoStr);
 }
 
@@ -584,7 +586,7 @@ bool CNodeCanal::addListener(Napi::Env &env,
 
   // Construct context data
   auto context = new tsfnContext(env); 
-  context->m_pif = m_pcanalif;                   
+  context->m_pif = &m_canalif;                   
 
   // Create a ThreadSafeFunction
   context->tsfn = Napi::ThreadSafeFunction::New(
@@ -619,7 +621,6 @@ bool CNodeCanal::addListener(Napi::Env &env,
       obj.Set("id", uint32_t(pmsg->id));
       obj.Set("flags", uint32_t(pmsg->flags));
       obj.Set("obid", uint32_t(pmsg->obid));
-      obj.Set("sizeData", uint32_t(pmsg->sizeData));
       obj.Set("timestamp", uint32_t(pmsg->timestamp));
       obj.Set("data", dataArray );
       jsCallback.Call({obj});

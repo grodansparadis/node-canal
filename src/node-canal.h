@@ -60,8 +60,6 @@ public:
        Napi::Object exports); // Init function for setting the export key to JS
   CNodeCanal(const Napi::CallbackInfo &info); // Constructor to initialise
 
-  CCanalIf *getIfPointer() { return m_pcanalif; };
-
 private:
   static Napi::FunctionReference
       constructor; // reference to store the class definition that needs to be
@@ -122,6 +120,6 @@ private:
   Napi::Function m_callback;
 
   // The main functionality
-  CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
+  CCanalIf m_canalif;   // internal instance of CCanalIf used to perform actual
                         // operations.                        
 };

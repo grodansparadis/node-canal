@@ -48,9 +48,9 @@ const callback = (canmsg) => {
 
 console.log('CNodeCanal init : ',
 rv = can.init("/home/akhe/development/VSCP/vscpl1drv-socketcan/linux/vscpl1drv-socketcan.so.1.1.0",
-                "vcan1",
-                0/* , 
-                callback */ ));
+                "vcan0",
+                0, 
+                callback ));
 
 if ( CANAL.CANAL_ERROR_SUCCESS != rv ) {
   console.log("Failed to initialized CANAL driver. Return code=",rv);
@@ -67,15 +67,14 @@ for ( var i=0; i<100; i++) {
         flags: CANAL.CANAL_IDFLAG_EXTENDED,
         obid: 33,
         timestamp: (hrTime[0] * 1000000 + hrTime[1] / 1000),
+        dlc: 8,
         data: [i,i,i,i,i,i,i,i],
-        ext: true,
-        rtr: false
     });
 }
 
 var id = setTimeout( () => {
+    //can.close();
     console.log('CNodeCanal close : ',can.close());
-    process.exitCode = 1;
     // console.log('----------------------------------------');
     // console.log(process._getActiveRequests());
     // console.log('----------------------------------------');
