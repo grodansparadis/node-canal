@@ -115,12 +115,13 @@ private:
   // Wrapper for CanalGetDriverInfo
   Napi::Value getDriverInfo(const Napi::CallbackInfo &info);
 
-  // Wrapper for CanalGetDriverInfo
+  // Message listener adder
   bool addListener(Napi::Env &env, Napi::Function &callback);
-  //Napi::Value addListener(const Napi::CallbackInfo &info);
 
+  // Callback defined if non-polling
   Napi::Function m_callback;
 
+  // The main functionality
   CCanalIf *m_pcanalif; // internal instance of CCanalIf used to perform actual
                         // operations.                        
 };

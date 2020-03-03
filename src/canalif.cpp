@@ -398,7 +398,8 @@ CCanalIf::CanalClose()
         return CANAL_ERROR_NOT_OPEN;
     }
 
-    usleep(500); // Give driver some time to write out pending data
+    m_bQuit = true;
+    //usleep(500); // Give driver some time to write out pending data
     int rv = m_proc_CanalClose(m_openHandle);
     if (CANAL_ERROR_SUCCESS != rv) {
         return rv;

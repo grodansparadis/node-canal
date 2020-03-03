@@ -212,6 +212,10 @@ Napi::Value CNodeCanal::open(const Napi::CallbackInfo &info) {
 
   int rv = this->m_pcanalif->CanalOpen();
 
+  // if ( NULL != m_callback ) {
+  //     addListener(env, m_callback);
+  // }
+
   return Napi::Number::New(env, rv);
 }
 
@@ -223,8 +227,10 @@ Napi::Value CNodeCanal::close(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  double num = this->m_pcanalif->CanalClose();
-  return Napi::Number::New(env, num);
+  this->m_pcanalif->m_bQuit = true; // Quit the main loop
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  int rv = this->m_pcanalif->CanalClose();
+  return Napi::Number::New(env, rv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -293,8 +299,8 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
         .ThrowAsJavaScriptException();
   }
 
-  double num = this->m_pcanalif->CanalSend(&canmsg);
-  return Napi::Number::New(env, num);
+  int rv = this->m_pcanalif->CanalSend(&canmsg);
+  return Napi::Number::New(env, rv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -626,7 +632,7 @@ bool CNodeCanal::addListener(Napi::Env &env,
 
       // Sit and wait for connection if were not connected
       if ( 0 == ctx->m_pif->m_openHandle ) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
         continue;
       }
 
@@ -642,6 +648,7 @@ bool CNodeCanal::addListener(Napi::Env &env,
           // Handle error
           delete pmsg;
         }
+        
       }
     }
 
