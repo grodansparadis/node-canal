@@ -67,7 +67,6 @@ for ( var i=0; i<100; i++) {
         flags: CANAL.CANAL_IDFLAG_EXTENDED,
         obid: 33,
         timestamp: (hrTime[0] * 1000000 + hrTime[1] / 1000),
-        dlc: 8,
         data: [i,i,i,i,i,i,i,i],
     });
 }

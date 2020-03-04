@@ -277,19 +277,30 @@ Napi::Value CNodeCanal::send(const Napi::CallbackInfo &info) {
   }
   // { id: 12132, ... }
   else if (1 == info.Length() && info[0].IsObject()) {
+    
     Napi::Object msg = info[0].As<Napi::Object>();
     canmsg.flags = (uint32_t)msg.Get("flags").ToNumber();
+    
     bool ext = (bool)msg.Get("ext").ToBoolean();
-    if (ext)
+    if (ext) {
       canmsg.flags |= CANAL_IDFLAG_EXTENDED;
+    }
+    
     bool rtr = (bool)msg.Get("rtr").ToBoolean();
-    if (rtr)
-    canmsg.flags |= CANAL_IDFLAG_RTR;
+    if (rtr) {
+      canmsg.flags |= CANAL_IDFLAG_RTR;
+    }
+
     canmsg.timestamp = (uint32_t)msg.Get("timestamp").ToNumber();
     canmsg.obid = (uint32_t)msg.Get("obid").ToNumber();
     canmsg.id = (uint32_t)msg.Get("id").ToNumber();
-    canmsg.sizeData = (uint32_t)msg.Get("dlc").ToNumber();
     Napi::Array data_array = msg.Get("data").ToObject().As<Napi::Array>();
+    if ( msg.Has("sizeData") ) {
+      canmsg.sizeData = (uint32_t)msg.Get("sizeData").ToNumber();
+    }
+    else {
+      canmsg.sizeData = (uint32_t)data_array.Length();
+    }
     for (uint32_t i = 0; i < canmsg.sizeData; i++) {
       Napi::Value val = data_array[i];
       if (val.IsNumber()) {
