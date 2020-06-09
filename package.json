@@ -1,6 +1,6 @@
 {
   "name": "node-canal",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "CANAL module interface for node.js",
   "main": "index.js",
   "gypfile": true,
@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "bindings": "^1.5.0",
+    "minimist": "^1.2.5",
     "node-addon-api": "^2.0.0",
     "util": "^0.12.2"
   }
