@@ -5,7 +5,7 @@
 
 # node-canal
 
-__Tested in node v11.8.0 and below__
+__Tested in node v14.17.4 and below__
 
 CANAL module interface for node.js. CANAL stands for [CAN Abstraction Layer](https://docs.vscp.org/#canal) and is the least common denominator for low level drivers for the [Very Simple Control Protocol, VSCP](https://www.vscp.org). In the VSCP world CANAL driver is also called level I drivers. 
 
