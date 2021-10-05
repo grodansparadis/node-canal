@@ -11,8 +11,7 @@
     "rebuild:dev": "node-gyp -j 16 rebuild --debug",
     "rebuild": "node-gyp -j 16 rebuild",
     "clean": "node-gyp clean",
-    "lint": "eslint .",
-    "update-dependencies": "ncu -u && npm install"
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -33,9 +32,8 @@
   "devDependencies": {
     "eslint": "^7.32.0",
     "mocha": "^9.1.2",
-    "ncu": "^0.2.1",
     "node-gyp": "^8.2.0",
-    "npm-check-updates": "^11.8.5",
+    "npm-check-updates": ">=11.8.5",
     "should": "^13.2.3"
   },
   "dependencies": {
