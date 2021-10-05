@@ -32,7 +32,7 @@
   "homepage": "https://github.com/grodansparadis/node-canal#readme",
   "devDependencies": {
     "eslint": "^7.32.0",
-    "mocha": "^9.1.1",
+    "mocha": "^9.1.2",
     "ncu": "^0.2.1",
     "node-gyp": "^8.2.0",
     "npm-check-updates": "^11.8.5",
@@ -42,7 +42,7 @@
     "bindings": "^1.5.0",
     "ini": "^2.0.0",
     "minimist": "^1.2.5",
-    "node-addon-api": "^4.1.0",
+    "node-addon-api": "^4.2.0",
     "semver": "^7.3.5",
     "util": "^0.12.4"
   }
